@@ -42,11 +42,11 @@ jobs:
           # Source folders. Running from tmp preserves the Drive folder names.
           (
             cd "$tmp"
-            gdown --folder "https://drive.google.com/drive/folders/1w-F7Vt9KILMokyPHO835NKEPXg3GpQ-f" --remaining-ok
-            gdown --folder "https://drive.google.com/drive/folders/1q2vd0UjG6eHkW6o5DnXmduBvBnKjiIdF" --remaining-ok
-            gdown --folder "https://drive.google.com/drive/folders/1aMu_fh7w2tkiHtWhQCgCCAN8VtTJLEqK" --remaining-ok
-            gdown --folder "https://drive.google.com/drive/folders/1s5B-l2wP86SscIS_aXFed1nt1iG1UlaK" --remaining-ok
-            gdown --folder "https://drive.google.com/drive/folders/1jjjhqAVECIRoz65koeiGwdrlpEJx5o8G" --remaining-ok
+            gdown --folder "https://drive.google.com/drive/folders/1w-F7Vt9KILMokyPHO835NKEPXg3GpQ-f"
+            gdown --folder "https://drive.google.com/drive/folders/1q2vd0UjG6eHkW6o5DnXmduBvBnKjiIdF"
+            gdown --folder "https://drive.google.com/drive/folders/1aMu_fh7w2tkiHtWhQCgCCAN8VtTJLEqK"
+            gdown --folder "https://drive.google.com/drive/folders/1s5B-l2wP86SscIS_aXFed1nt1iG1UlaK"
+            gdown --folder "https://drive.google.com/drive/folders/1jjjhqAVECIRoz65koeiGwdrlpEJx5o8G"
           )
 
           # Replace repository contents while preserving Git metadata and the workflow until this run finishes.
