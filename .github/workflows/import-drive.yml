@@ -1,0 +1,80 @@
+name: Import Sussurro from Drive
+
+on:
+  push:
+    paths:
+      - ".github/workflows/import-drive.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install gdown
+        run: python -m pip install --disable-pip-version-check gdown
+
+      - name: Download clean project from Drive
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+
+          # Root files
+          gdown "https://drive.google.com/uc?id=1vnUP6KdKTiegvaZh7hnxhZRa49jQeVUw" -O "$tmp/.gitignore"
+          gdown "https://drive.google.com/uc?id=1tDpgl4z3QN7gTbw5oraveeLmGXceo7Cm" -O "$tmp/README.md"
+          gdown "https://drive.google.com/uc?id=1PE5n6L8jYEqGgUuZ_PIiCwqo6-slJCOb" -O "$tmp/PLAN.md"
+          gdown "https://drive.google.com/uc?id=17JgyZqEuSiZ8sJY8LZLkteSGNIYNgVra" -O "$tmp/requirements.txt"
+          gdown "https://drive.google.com/uc?id=1L5il0n0d8ZLT3FlJvfi7jbZcntdfcPSQ" -O "$tmp/Sussurro (dev).bat"
+          gdown "https://drive.google.com/uc?id=1N574DJgu-_S-qM4666zc-IaCccJ1aDoZ" -O "$tmp/sussurro.spec"
+
+          # Source folders. Running from tmp preserves the Drive folder names.
+          (
+            cd "$tmp"
+            gdown --folder "https://drive.google.com/drive/folders/1w-F7Vt9KILMokyPHO835NKEPXg3GpQ-f" --remaining-ok
+            gdown --folder "https://drive.google.com/drive/folders/1q2vd0UjG6eHkW6o5DnXmduBvBnKjiIdF" --remaining-ok
+            gdown --folder "https://drive.google.com/drive/folders/1aMu_fh7w2tkiHtWhQCgCCAN8VtTJLEqK" --remaining-ok
+            gdown --folder "https://drive.google.com/drive/folders/1s5B-l2wP86SscIS_aXFed1nt1iG1UlaK" --remaining-ok
+            gdown --folder "https://drive.google.com/drive/folders/1jjjhqAVECIRoz65koeiGwdrlpEJx5o8G" --remaining-ok
+          )
+
+          # Replace repository contents while preserving Git metadata and the workflow until this run finishes.
+          find . -mindepth 1 -maxdepth 1 ! -name .git ! -name .github -exec rm -rf {} +
+          cp -a "$tmp"/. .
+
+          # Never publish generated/local artifacts. Font binaries are intentionally not redistributed.
+          rm -rf .venv venv build dist models scratch .claude
+          rm -rf sussurro/assets/fonts
+          rm -rf sussurro/assets/sounds
+          find . -type d -name __pycache__ -prune -exec rm -rf {} +
+          find . -type f \( -name '*.pyc' -o -name '*.pyo' -o -name '*.log' -o -name '*.err' -o -name '*.zip' -o -name '*.wav' -o -name '*.mp3' \) -delete
+
+          # The importer is one-shot. Do not keep it in the project.
+          rm -f .github/workflows/import-drive.yml
+          rmdir .github/workflows 2>/dev/null || true
+          rmdir .github 2>/dev/null || true
+
+          # Basic source validation before publication.
+          python -m compileall -q sussurro scripts
+
+      - name: Commit project
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --stat
+          git commit -m "Import Sussurro project from Drive"
+          git push origin HEAD:main
