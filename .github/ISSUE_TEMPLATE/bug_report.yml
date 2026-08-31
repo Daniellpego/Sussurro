@@ -1,0 +1,39 @@
+name: Bug report
+description: Relate um erro reproduzível do Sussurro
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Não anexe transcrições, logs ou arquivos de %APPDATA% com dados pessoais sem anonimizar."
+  - type: input
+    id: version
+    attributes:
+      label: Commit ou versão
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows
+      placeholder: "Windows 11 24H2"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Passos para reproduzir
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Resultado esperado
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Resultado observado
+    validations:
+      required: true

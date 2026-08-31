@@ -1,0 +1,217 @@
+"""Detecção de hardware + pré-requisitos pro primeiro uso (tela 09).
+
+Tudo REAL (sem placeholder): GPU via nvidia-smi, cache do Whisper via
+huggingface_hub, Ollama via ping/list. Downloads rodam em QThread com progresso
+real (Whisper monitorando o cache do HF; Qwen via stream do /api/pull).
+"""
+from __future__ import annotations
+
+import os
+import subprocess
+import threading
+import time
+from pathlib import Path
+
+from PySide6.QtCore import QThread, Signal
+
+from sussurro.llm import ollama as ollama_client
+
+# tamanho aproximado pra estimar o % do download do Whisper (GB)
+_WHISPER_APPROX_GB = {
+    "tiny": 0.075, "base": 0.145, "small": 0.5, "medium": 1.5,
+    "large-v3": 3.1, "large-v3-turbo": 1.6,
+}
+_QWEN_MODEL = ollama_client.DEFAULT_MODEL
+
+
+# --------------------------------------------------------------------------- GPU
+
+def detect_gpu() -> tuple[str, int] | None:
+    """(nome curto, VRAM GB) via nvidia-smi, ou None se não houver GPU NVIDIA."""
+    try:
+        out = subprocess.run(
+            ["nvidia-smi", "--query-gpu=name,memory.total",
+             "--format=csv,noheader,nounits"],
+            capture_output=True, text=True, timeout=6,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if out.returncode != 0 or not out.stdout.strip():
+        return None
+    line = out.stdout.strip().splitlines()[0]
+    try:
+        name, mem = (x.strip() for x in line.split(","))
+        gb = round(int(mem) / 1024)
+    except (ValueError, IndexError):
+        return None
+    short = (name.replace("NVIDIA GeForce ", "")
+                 .replace("NVIDIA ", "").strip())
+    return short, gb
+
+
+# ----------------------------------------------------------------------- Whisper
+
+def whisper_repo(model_size: str) -> str:
+    special = {
+        "large-v3-turbo": "deepdml/faster-whisper-large-v3-turbo-ct2",
+    }
+    return special.get(model_size, f"Systran/faster-whisper-{model_size}")
+
+
+def whisper_cached(model_size: str) -> bool:
+    """True se o modelo Whisper já está no cache do HuggingFace."""
+    try:
+        from huggingface_hub import try_to_load_from_cache
+    except Exception:  # noqa: BLE001
+        return False
+    repo = whisper_repo(model_size)
+    try:
+        hit = try_to_load_from_cache(repo, "model.bin")
+        return isinstance(hit, str) and Path(hit).exists()
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _repo_cache_dir(repo: str) -> Path | None:
+    try:
+        from huggingface_hub.constants import HF_HUB_CACHE
+    except Exception:  # noqa: BLE001
+        HF_HUB_CACHE = os.path.expanduser("~/.cache/huggingface/hub")
+    folder = "models--" + repo.replace("/", "--")
+    p = Path(HF_HUB_CACHE) / folder
+    return p if p.exists() else None
+
+
+def _dir_size_gb(path: Path) -> float:
+    total = 0
+    try:
+        for f in path.rglob("*"):
+            if f.is_file():
+                try:
+                    total += f.stat().st_size
+                except OSError:
+                    pass
+    except OSError:
+        pass
+    return total / 1e9
+
+
+class WhisperDownloadWorker(QThread):
+    """Baixa o modelo Whisper, emitindo progresso real (GB baixados/total)."""
+
+    progress = Signal(float, float, float)   # feito_gb, total_gb, velocidade_mbps
+    finished_ok = Signal()
+    failed = Signal(str)
+
+    def __init__(self, model_size: str) -> None:
+        super().__init__()
+        self._size = model_size
+        self._cancelled = False
+
+    def cancel(self) -> None:
+        """Para de emitir e encerra a thread (o download HF daemon termina só)."""
+        self._cancelled = True
+
+    def run(self) -> None:
+        repo = whisper_repo(self._size)
+        total = _WHISPER_APPROX_GB.get(self._size, 3.0)
+        err: list[Exception | None] = [None]
+        done = threading.Event()
+
+        def _dl() -> None:
+            try:
+                from huggingface_hub import snapshot_download
+                snapshot_download(repo)
+            except Exception as e:  # noqa: BLE001
+                err[0] = e
+            finally:
+                done.set()
+
+        t = threading.Thread(target=_dl, daemon=True)
+        t.start()
+
+        last_gb, last_t = 0.0, time.monotonic()
+        while not done.wait(0.5):
+            if self._cancelled:
+                return
+            cache = _repo_cache_dir(repo)
+            cur = _dir_size_gb(cache) if cache else 0.0
+            now = time.monotonic()
+            speed = max(0.0, (cur - last_gb) * 1000.0 / max(now - last_t, 1e-3))
+            self.progress.emit(min(cur, total), total, speed)
+            last_gb, last_t = cur, now
+
+        if err[0] is not None:
+            self.failed.emit(repr(err[0]))
+            return
+        self.progress.emit(total, total, 0.0)
+        self.finished_ok.emit()
+
+
+# ------------------------------------------------------------------------ Ollama
+
+def ollama_installed() -> bool:
+    """Ollama no PATH ou rodando na API local."""
+    if ollama_client.is_running():
+        return True
+    from shutil import which
+    return which("ollama") is not None
+
+
+def ollama_running() -> bool:
+    return ollama_client.is_running()
+
+
+def qwen_pulled() -> bool:
+    models = ollama_client.list_models()
+    return _QWEN_MODEL in models
+
+
+class QwenPullWorker(QThread):
+    """`ollama pull` com progresso real (stream NDJSON do /api/pull)."""
+
+    progress = Signal(float, float)   # feito_gb, total_gb
+    finished_ok = Signal()
+    failed = Signal(str)
+
+    def __init__(self, model: str = _QWEN_MODEL) -> None:
+        super().__init__()
+        self._model = model
+        self._cancelled = False
+
+    def cancel(self) -> None:
+        self._cancelled = True
+
+    def run(self) -> None:
+        import httpx
+        success = False
+        try:
+            with httpx.stream(
+                "POST", f"{ollama_client.OLLAMA_BASE}/api/pull",
+                json={"name": self._model, "stream": True}, timeout=None,
+            ) as resp:
+                resp.raise_for_status()
+                import json
+                for line in resp.iter_lines():
+                    if self._cancelled:
+                        return
+                    if not line:
+                        continue
+                    try:
+                        data = json.loads(line)
+                    except ValueError:
+                        continue
+                    total = data.get("total")
+                    completed = data.get("completed")
+                    if total:
+                        self.progress.emit(
+                            (completed or 0) / 1e9, total / 1e9)
+                    if data.get("status") == "success":
+                        success = True
+                        self.finished_ok.emit()
+                        return
+        except Exception as e:  # noqa: BLE001
+            self.failed.emit(repr(e))
+            return
+        if not success:
+            self.failed.emit("pull do Qwen terminou sem confirmação de sucesso")

@@ -1,0 +1,70 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Build e empacotamento
+build/
+dist/
+installer/out/
+
+# Modelos locais e artefatos de ML
+models/
+*.gguf
+*.pt
+*.onnx
+*.ct2/
+
+# Áudio e artefatos de validação
+scratch/
+*.wav
+*.mp3
+*.m4a
+*.flac
+*.ogg
+!tests/fixtures/*.wav
+
+# Logs e diagnósticos locais
+*.log
+*.err
+logs/
+
+# Configuração e segredos locais
+.env
+.env.*
+!.env.example
+*.local.toml
+
+# Fontes locais não distribuídas pelo repositório
+sussurro/assets/fonts/*.ttf
+sussurro/assets/fonts/*.otf
+
+# IDE / ferramentas locais
+.vscode/
+.idea/
+.claude/
+*.swp
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Pacotes temporários
+*.zip
+
+# Tool and Agent state
+.agents/
+.simplicio/
+Sussurro-final-publicacao/
+_repo_*/
+

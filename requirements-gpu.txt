@@ -1,0 +1,5 @@
+-r requirements.txt
+
+# Runtime CUDA 12 opcional. O código também aceita CUDA/cuDNN instalados no sistema.
+nvidia-cublas-cu12>=12.4,<13
+nvidia-cudnn-cu12>=9.1,<10

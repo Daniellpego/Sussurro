@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sussurro - Modos</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Courier+Prime&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .bg-glass {
+            background-color: rgba(20, 23, 29, 0.92);
+            backdrop-filter: blur(12px);
+        }
+
+        .gradient-text {
+            background: linear-gradient(to bottom, #c0c1ff, #ffb0cd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(to bottom, #c0c1ff, #ffb0cd);
+        }
+
+        .glow-active {
+            box-shadow: 0 0 20px 0 rgba(192, 193, 255, 0.15);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-secondary-fixed-variant": "#8c0053",
+                        "surface-container-low": "#1a1c20",
+                        "primary": "#c0c1ff",
+                        "primary-fixed": "#e1e0ff",
+                        "error": "#ffb4ab",
+                        "surface-container-high": "#282a2e",
+                        "on-primary": "#1000a9",
+                        "secondary": "#ffb0cd",
+                        "background": "#111317",
+                        "outline": "#908fa0",
+                        "primary-container": "#8083ff",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "on-secondary": "#640039",
+                        "surface-dim": "#111317",
+                        "on-secondary-fixed": "#3e0022",
+                        "on-tertiary": "#2d3037",
+                        "on-primary-fixed": "#07006c",
+                        "on-surface": "#e2e2e8",
+                        "outline-variant": "#464554",
+                        "on-tertiary-fixed-variant": "#44474e",
+                        "on-tertiary-container": "#272a30",
+                        "tertiary": "#c4c6cf",
+                        "inverse-on-surface": "#2f3035",
+                        "on-secondary-container": "#ffbad3",
+                        "on-tertiary-fixed": "#191c22",
+                        "surface-tint": "#c0c1ff",
+                        "on-primary-container": "#0d0096",
+                        "on-error-container": "#ffdad6",
+                        "inverse-primary": "#494bd6",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "on-surface-variant": "#c7c4d7",
+                        "secondary-container": "#aa0266",
+                        "inverse-surface": "#e2e2e8",
+                        "secondary-fixed": "#ffd9e4",
+                        "on-background": "#e2e2e8",
+                        "surface-container-highest": "#333539",
+                        "on-error": "#690005",
+                        "secondary-fixed-dim": "#ffb0cd",
+                        "tertiary-fixed-dim": "#c4c6cf",
+                        "tertiary-container": "#8e9098",
+                        "surface": "#111317",
+                        "tertiary-fixed": "#e1e2eb",
+                        "surface-bright": "#37393e",
+                        "error-container": "#93000a",
+                        "surface-container-lowest": "#0c0e12",
+                        "surface-container": "#1e2024",
+                        "surface-variant": "#333539"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "xs": "0.25rem",
+                        "window_margin": "12px",
+                        "xl": "2rem",
+                        "md": "1rem",
+                        "lg": "1.5rem",
+                        "gutter": "16px",
+                        "sm": "0.5rem"
+                    },
+                    fontFamily: {
+                        "headline-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "caption": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "display": ["Inter"],
+                        "label-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "mono-label": ["Courier Prime"],
+                        "body-lg": ["Inter"],
+                        "headline-lg": ["Inter"]
+                    },
+                    fontSize: {
+                        "headline-md": ["22px", { "lineHeight": "28px", "fontWeight": "500" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "caption": ["11px", { "lineHeight": "14px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "display": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "label-md": ["13px", { "lineHeight": "18px", "fontWeight": "500" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "mono-label": ["12px", { "lineHeight": "12px", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "26px", "fontWeight": "400" }],
+                        "headline-lg": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background min-h-screen flex font-body-md overflow-hidden">
+<!-- TopAppBar (Mobile Only - Though prompt implies desktop window context, including per shared JSON) -->
+<header class="md:hidden h-[36px] w-full fixed top-0 left-0 bg-surface flex items-center justify-between px-xs z-50">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-[22%] bg-[#14171D] flex items-center justify-center overflow-hidden">
+<div class="flex items-end gap-[1px] h-3">
+<div class="w-[2px] h-[40%] gradient-bg rounded-full"></div>
+<div class="w-[2px] h-[70%] gradient-bg rounded-full"></div>
+<div class="w-[2px] h-full gradient-bg rounded-full"></div>
+<div class="w-[2px] h-[60%] gradient-bg rounded-full"></div>
+<div class="w-[2px] h-[30%] gradient-bg rounded-full"></div>
+</div>
+</div>
+<span class="font-headline-lg text-headline-lg text-on-surface">Sussurro</span>
+</div>
+<div class="flex items-center text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</div>
+</header>
+<!-- SideNavBar (Desktop) -->
+<nav class="hidden md:flex flex-col h-full py-md w-[240px] fixed left-0 top-0 bg-surface-container border-r border-outline-variant/10 z-40">
+<div class="px-md mb-xl flex items-center gap-3">
+<div class="w-10 h-10 rounded-[22%] bg-[#14171D] flex items-center justify-center overflow-hidden shrink-0 border border-white/[0.06]">
+<div class="flex items-end gap-[2px] h-5">
+<div class="w-[3px] h-[40%] gradient-bg rounded-full"></div>
+<div class="w-[3px] h-[70%] gradient-bg rounded-full"></div>
+<div class="w-[3px] h-full gradient-bg rounded-full"></div>
+<div class="w-[3px] h-[60%] gradient-bg rounded-full"></div>
+<div class="w-[3px] h-[30%] gradient-bg rounded-full"></div>
+</div>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-on-surface tracking-tight">Sussurro</h1>
+<p class="font-caption text-caption text-on-surface-variant">Local Transcription</p>
+</div>
+</div>
+<ul class="flex-1 px-sm space-y-1">
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="home">home</span>
+<span class="font-body-sm text-body-sm">Home</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="history">history</span>
+<span class="font-body-sm text-body-sm">History</span>
+</a>
+</li>
+<li>
+<!-- Active State -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-primary font-bold border-r-2 border-primary bg-surface-container-highest/50 glow-active" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="tune">tune</span>
+<span class="font-body-sm text-body-sm">Modes</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="settings">settings</span>
+<span class="font-body-sm text-body-sm">Settings</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="info">info</span>
+<span class="font-body-sm text-body-sm">About</span>
+</a>
+</li>
+</ul>
+<div class="px-sm mt-auto">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="keyboard">keyboard</span>
+<span class="font-body-sm text-body-sm">Shortcuts</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-1 ml-0 md:ml-[240px] pt-[36px] md:pt-0 p-window_margin h-screen overflow-y-auto bg-background">
+<div class="max-w-4xl mx-auto py-md md:py-xl">
+<header class="mb-lg">
+<h2 class="font-display text-display text-on-surface mb-xs">Modos de Transcrição</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Configure os prompts do LLM para processar suas gravações.</p>
+</header>
+<!-- Bento Grid / Cards Layout -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+<!-- Card 1: Raw (Inactive) -->
+<div class="bg-[#14171D] border border-white/[0.06] rounded-xl p-md flex flex-col transition-all duration-200 hover:bg-surface-container">
+<div class="flex items-start justify-between mb-sm">
+<div class="inline-flex items-center px-2 py-1 rounded bg-tertiary/10 border border-tertiary/20">
+<span class="font-caption text-caption uppercase text-tertiary">RAW</span>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-md flex-1">Transcrição exata sem processamento LLM. Mantém pausas e hesitações.</p>
+<div class="flex justify-end">
+<button class="font-label-md text-label-md text-on-surface-variant hover:text-on-surface border border-outline-variant/30 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+                            Editar prompt
+                        </button>
+</div>
+</div>
+<!-- Card 2: Clean (Active / Expanded) -->
+<div class="bg-[#14171D] border border-primary/30 rounded-xl p-md flex flex-col md:col-span-2 glow-active relative overflow-hidden">
+<div class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+<div class="flex items-start justify-between mb-sm relative z-10">
+<div class="inline-flex items-center px-2 py-1 rounded bg-primary/20 border border-primary/30">
+<span class="font-caption text-caption uppercase text-primary">CLEAN</span>
+</div>
+<span class="font-caption text-caption text-primary/70">Ativo</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface mb-md relative z-10">Remove hesitações ("humm", "ééé"), corrige gramática básica e organiza em parágrafos coesos mantendo o tom original.</p>
+<!-- Expanded Content -->
+<div class="mt-xs pt-md border-t border-white/[0.06] relative z-10">
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-xs">Prompt do Sistema</label>
+<textarea class="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg p-3 font-mono-label text-mono-label text-on-surface focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-colors resize-none h-32" spellcheck="false">Você é um assistente de transcrição focado em clareza.
+Sua tarefa é receber um texto transcrito e remover marcadores de hesitação (como "humm", "ah", repetições de palavras), corrigir erros gramaticais óbvios da fala e organizar o texto em parágrafos lógicos.
+
+NÃO altere o significado das frases.
+NÃO adicione informações novas.
+Mantenha o tom de voz original (formal, informal, etc).</textarea>
+<div class="flex items-center justify-between mt-md">
+<button class="font-label-md text-label-md text-error hover:text-error-container transition-colors">
+                                Restaurar padrão
+                            </button>
+<div class="flex gap-2">
+<button class="font-label-md text-label-md text-on-surface-variant hover:text-on-surface px-4 py-2 rounded-lg transition-colors">
+                                    Cancelar
+                                </button>
+<button class="font-label-md text-label-md gradient-bg text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity shadow-[0_0_15px_rgba(192,193,255,0.3)]">
+                                    Salvar
+                                </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 3: Email (Inactive) -->
+<div class="bg-[#14171D] border border-white/[0.06] rounded-xl p-md flex flex-col transition-all duration-200 hover:bg-surface-container">
+<div class="flex items-start justify-between mb-sm">
+<div class="inline-flex items-center px-2 py-1 rounded bg-secondary/10 border border-secondary/20">
+<span class="font-caption text-caption uppercase text-secondary">EMAIL</span>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-md flex-1">Converte a fala em um rascunho de e-mail profissional, identificando destinatário, assunto e ação desejada se mencionados.</p>
+<div class="flex justify-end">
+<button class="font-label-md text-label-md text-on-surface-variant hover:text-on-surface border border-outline-variant/30 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+                            Editar prompt
+                        </button>
+</div>
+</div>
+<!-- Card 4: Bullets (Inactive) -->
+<div class="bg-[#14171D] border border-white/[0.06] rounded-xl p-md flex flex-col transition-all duration-200 hover:bg-surface-container">
+<div class="flex items-start justify-between mb-sm">
+<div class="inline-flex items-center px-2 py-1 rounded bg-[#a3defe]/10 border border-[#a3defe]/20">
+<span class="font-caption text-caption uppercase text-[#a3defe]">BULLETS</span>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-md flex-1">Resume a transcrição em uma lista concisa de pontos-chave (bullet points). Ideal para notas rápidas.</p>
+<div class="flex justify-end">
+<button class="font-label-md text-label-md text-on-surface-variant hover:text-on-surface border border-outline-variant/30 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+                            Editar prompt
+                        </button>
+</div>
+</div>
+<!-- Card 5: Prompt (Inactive) -->
+<div class="bg-[#14171D] border border-white/[0.06] rounded-xl p-md flex flex-col transition-all duration-200 hover:bg-surface-container">
+<div class="flex items-start justify-between mb-sm">
+<div class="inline-flex items-center px-2 py-1 rounded bg-[#f1c0e8]/10 border border-[#f1c0e8]/20">
+<span class="font-caption text-caption uppercase text-[#f1c0e8]">PROMPT</span>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-md flex-1">Otimiza a fala para ser usada como um prompt para outros modelos de IA (ex: Midjourney, ChatGPT).</p>
+<div class="flex justify-end">
+<button class="font-label-md text-label-md text-on-surface-variant hover:text-on-surface border border-outline-variant/30 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+                            Editar prompt
+                        </button>
+</div>
+</div>
+<!-- Card 6: Code (Inactive) -->
+<div class="bg-[#14171D] border border-white/[0.06] rounded-xl p-md flex flex-col transition-all duration-200 hover:bg-surface-container">
+<div class="flex items-start justify-between mb-sm">
+<div class="inline-flex items-center px-2 py-1 rounded bg-[#cfbaf0]/10 border border-[#cfbaf0]/20">
+<span class="font-caption text-caption uppercase text-[#cfbaf0]">CODE</span>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-md flex-1">Formata pseudo-código ou descrições técnicas faladas em blocos de código formatados na linguagem inferida.</p>
+<div class="flex justify-end">
+<button class="font-label-md text-label-md text-on-surface-variant hover:text-on-surface border border-outline-variant/30 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+                            Editar prompt
+                        </button>
+</div>
+</div>
+<!-- Card 7: Translate (Inactive) -->
+<div class="bg-[#14171D] border border-white/[0.06] rounded-xl p-md flex flex-col transition-all duration-200 hover:bg-surface-container">
+<div class="flex items-start justify-between mb-sm">
+<div class="inline-flex items-center px-2 py-1 rounded bg-[#fbf8cc]/10 border border-[#fbf8cc]/20">
+<span class="font-caption text-caption uppercase text-[#fbf8cc]">TRANSLATE</span>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-md flex-1">Tradução direta da fala (Português -> Inglês) mantendo o contexto limpo.</p>
+<div class="flex justify-end">
+<button class="font-label-md text-label-md text-on-surface-variant hover:text-on-surface border border-outline-variant/30 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+                            Editar prompt
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

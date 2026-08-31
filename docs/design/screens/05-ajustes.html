@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sussurro - Ajustes</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Courier+Prime&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-secondary-fixed-variant": "#8c0053",
+                        "surface-container-low": "#1a1c20",
+                        "primary": "#c0c1ff",
+                        "primary-fixed": "#e1e0ff",
+                        "error": "#ffb4ab",
+                        "surface-container-high": "#282a2e",
+                        "on-primary": "#1000a9",
+                        "secondary": "#ffb0cd",
+                        "background": "#111317",
+                        "outline": "#908fa0",
+                        "primary-container": "#8083ff",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "on-secondary": "#640039",
+                        "surface-dim": "#111317",
+                        "on-secondary-fixed": "#3e0022",
+                        "on-tertiary": "#2d3037",
+                        "on-primary-fixed": "#07006c",
+                        "on-surface": "#e2e2e8",
+                        "outline-variant": "#464554",
+                        "on-tertiary-fixed-variant": "#44474e",
+                        "on-tertiary-container": "#272a30",
+                        "tertiary": "#c4c6cf",
+                        "inverse-on-surface": "#2f3035",
+                        "on-secondary-container": "#ffbad3",
+                        "on-tertiary-fixed": "#191c22",
+                        "surface-tint": "#c0c1ff",
+                        "on-primary-container": "#0d0096",
+                        "on-error-container": "#ffdad6",
+                        "inverse-primary": "#494bd6",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "on-surface-variant": "#c7c4d7",
+                        "secondary-container": "#aa0266",
+                        "inverse-surface": "#e2e2e8",
+                        "secondary-fixed": "#ffd9e4",
+                        "on-background": "#e2e2e8",
+                        "surface-container-highest": "#333539",
+                        "on-error": "#690005",
+                        "secondary-fixed-dim": "#ffb0cd",
+                        "tertiary-fixed-dim": "#c4c6cf",
+                        "tertiary-container": "#8e9098",
+                        "surface": "#111317",
+                        "tertiary-fixed": "#e1e2eb",
+                        "surface-bright": "#37393e",
+                        "error-container": "#93000a",
+                        "surface-container-lowest": "#0c0e12",
+                        "surface-container": "#1e2024",
+                        "surface-variant": "#333539"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "xs": "0.25rem",
+                        "window_margin": "12px",
+                        "xl": "2rem",
+                        "md": "1rem",
+                        "lg": "1.5rem",
+                        "gutter": "16px",
+                        "sm": "0.5rem"
+                    },
+                    fontFamily: {
+                        "headline-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "caption": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "display": ["Inter"],
+                        "label-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "mono-label": ["Courier Prime"],
+                        "body-lg": ["Inter"],
+                        "headline-lg": ["Inter"]
+                    },
+                    fontSize: {
+                        "headline-md": ["22px", { "lineHeight": "28px", "fontWeight": "500" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "caption": ["11px", { "lineHeight": "14px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "display": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "label-md": ["13px", { "lineHeight": "18px", "fontWeight": "500" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "mono-label": ["12px", { "lineHeight": "12px", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "26px", "fontWeight": "400" }],
+                        "headline-lg": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: theme('colors.outline-variant');
+            border-radius: theme('borderRadius.full');
+            border: 2px solid theme('colors.background');
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: theme('colors.outline');
+        }
+
+        /* Animated Gradient Text Utility */
+        .text-gradient-primary {
+            background: linear-gradient(to right, theme('colors.primary'), theme('colors.secondary'));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface h-screen w-screen overflow-hidden flex font-body-md select-none">
+<!-- TopAppBar -->
+<header class="bg-surface h-[36px] w-full fixed top-0 left-0 flex items-center justify-between px-xs cursor-default select-none z-50">
+<div class="flex items-center gap-sm px-xs">
+<span class="font-headline-lg text-headline-lg text-on-surface font-extrabold tracking-tight">Sussurro</span>
+</div>
+<div class="flex items-center">
+<button aria-label="minimize" class="w-8 h-[36px] flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[16px]">minimize</span>
+</button>
+<button aria-label="remove" class="w-8 h-[36px] flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[16px]">remove</span>
+</button>
+<button aria-label="close" class="w-8 h-[36px] flex items-center justify-center text-on-surface-variant hover:bg-error/20 hover:text-error transition-colors">
+<span class="material-symbols-outlined text-[16px]">close</span>
+</button>
+</div>
+</header>
+<!-- SideNavBar -->
+<nav class="w-[220px] h-full fixed left-0 top-[36px] bg-surface-container flex flex-col py-md border-r border-outline-variant/10 z-40">
+<!-- Brand / Header Profile Area -->
+<div class="px-md mb-xl flex items-center gap-sm">
+<!-- Brand Mark -->
+<div class="w-10 h-10 rounded-[22%] bg-surface flex items-center justify-center gap-[2px] p-[6px] border border-white/5 shadow-inner">
+<div class="w-[3px] h-[30%] bg-gradient-to-b from-primary to-secondary rounded-full opacity-70"></div>
+<div class="w-[3px] h-[60%] bg-gradient-to-b from-primary to-secondary rounded-full opacity-90"></div>
+<div class="w-[3px] h-[90%] bg-gradient-to-b from-primary to-secondary rounded-full"></div>
+<div class="w-[3px] h-[60%] bg-gradient-to-b from-primary to-secondary rounded-full opacity-90"></div>
+<div class="w-[3px] h-[30%] bg-gradient-to-b from-primary to-secondary rounded-full opacity-70"></div>
+</div>
+<div>
+<h2 class="font-label-md text-label-md font-bold text-on-surface tracking-wide uppercase">Sussurro</h2>
+<p class="font-caption text-caption text-on-surface-variant">Local Transcription</p>
+</div>
+</div>
+<!-- Navigation Links -->
+<ul class="flex flex-col flex-1 gap-1 px-sm">
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-colors active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined text-[20px]">home</span>
+<span class="font-label-md text-label-md">Home</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-colors active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined text-[20px]">history</span>
+<span class="font-label-md text-label-md">History</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-colors active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined text-[20px]">tune</span>
+<span class="font-label-md text-label-md">Modes</span>
+</a>
+</li>
+<!-- Active Tab -->
+<li class="relative">
+<div class="absolute left-[-8px] top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full"></div>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-primary font-bold bg-surface-container-highest/50 border-r-2 border-primary active:scale-[0.98] transition-transform" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-colors active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined text-[20px]">info</span>
+<span class="font-label-md text-label-md">About</span>
+</a>
+</li>
+</ul>
+<!-- Footer Links -->
+<div class="px-sm mt-auto border-t border-outline-variant/10 pt-sm">
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-colors active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined text-[20px]">keyboard</span>
+<span class="font-label-md text-label-md flex-1">Shortcuts</span>
+<span class="inline-flex items-center justify-center px-[6px] py-[2px] rounded font-mono-label text-mono-label border border-white/10 bg-surface text-on-surface-variant text-[10px]">?</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="ml-[220px] mt-[36px] flex-1 h-[calc(100vh-36px)] overflow-y-auto bg-surface p-xl relative">
+<!-- Subtle Background Glow -->
+<div class="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none -translate-y-1/2 translate-x-1/4"></div>
+<div class="max-w-4xl mx-auto relative z-10">
+<!-- Header -->
+<div class="mb-xl">
+<h1 class="font-display text-display text-on-surface font-semibold tracking-tight">Ajustes</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">Configure suas preferências de áudio, transcrição e comportamento.</p>
+</div>
+<!-- Bento Grid Layout for Settings -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+<!-- Áudio Section -->
+<section class="bg-surface-container-low rounded-xl border border-white/[0.06] p-lg flex flex-col gap-md shadow-sm backdrop-blur-sm">
+<div class="flex items-center gap-sm border-b border-outline-variant/10 pb-sm">
+<span class="material-symbols-outlined text-primary text-[20px]">mic</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Áudio</h3>
+</div>
+<div class="flex flex-col gap-xs mt-sm">
+<label class="font-label-sm text-label-sm text-on-surface-variant">Microfone de Entrada</label>
+<div class="relative">
+<select class="w-full bg-surface-container appearance-none border border-outline-variant/20 rounded-lg font-body-sm text-body-sm text-on-surface px-md py-sm pr-xl focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-shadow cursor-pointer">
+<option value="default">Default - Microfone (Realtek(R) Audio)</option>
+<option value="usb">USB Condenser Microphone</option>
+<option value="virtual">Virtual Audio Cable</option>
+</select>
+<span class="material-symbols-outlined absolute right-md top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[18px]">expand_more</span>
+</div>
+</div>
+</section>
+<!-- Transcrição Section -->
+<section class="bg-surface-container-low rounded-xl border border-white/[0.06] p-lg flex flex-col gap-md shadow-sm backdrop-blur-sm">
+<div class="flex items-center gap-sm border-b border-outline-variant/10 pb-sm">
+<span class="material-symbols-outlined text-primary text-[20px]">translate</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Transcrição</h3>
+</div>
+<div class="grid grid-cols-2 gap-md mt-sm">
+<div class="flex flex-col gap-xs">
+<label class="font-label-sm text-label-sm text-on-surface-variant">Idioma Primário</label>
+<div class="bg-surface-container border border-outline-variant/20 rounded-lg px-md py-sm flex items-center justify-between cursor-pointer hover:border-primary/50 transition-colors">
+<span class="font-body-sm text-body-sm text-on-surface flex items-center gap-xs">
+<span class="text-[16px] leading-none">🇧🇷</span> PT-BR
+                                </span>
+<span class="material-symbols-outlined text-on-surface-variant text-[16px]">edit</span>
+</div>
+</div>
+<div class="flex flex-col gap-xs">
+<label class="font-label-sm text-label-sm text-on-surface-variant">Modo</label>
+<div class="relative">
+<select class="w-full bg-surface-container appearance-none border border-outline-variant/20 rounded-lg font-body-sm text-body-sm text-on-surface px-md py-sm pr-xl focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-shadow cursor-pointer">
+<option value="dictation">Ditado Geral</option>
+<option value="coding">Programação</option>
+<option value="translation">Tradução (EN)</option>
+</select>
+<span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[18px]">expand_more</span>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between mt-xs bg-surface-container/50 rounded-lg p-sm border border-outline-variant/5">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Modelo Local Ativo</span>
+<!-- Keycap -->
+<span class="inline-flex items-center justify-center px-2 py-1 rounded bg-surface-bright border border-white/10 font-mono-label text-mono-label text-on-surface shadow-sm">large-v3</span>
+</div>
+</section>
+<!-- Atalho Section -->
+<section class="bg-surface-container-low rounded-xl border border-white/[0.06] p-lg flex flex-col gap-md shadow-sm backdrop-blur-sm">
+<div class="flex items-center gap-sm border-b border-outline-variant/10 pb-sm">
+<span class="material-symbols-outlined text-primary text-[20px]">keyboard</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Atalho</h3>
+</div>
+<div class="flex items-center justify-between mt-sm p-md bg-surface-container rounded-lg border border-outline-variant/10 group hover:border-primary/30 transition-colors cursor-pointer">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface group-hover:text-primary transition-colors">Ativação por Voz</span>
+<span class="font-caption text-caption text-on-surface-variant">Push-to-talk global</span>
+</div>
+<!-- Keycap -->
+<span class="inline-flex items-center justify-center px-3 py-1.5 rounded-md bg-surface-bright border border-white/10 font-mono-label text-mono-label text-on-surface shadow-sm tracking-wider">Ctrl+Win</span>
+</div>
+</section>
+<!-- Comportamento Section -->
+<section class="bg-surface-container-low rounded-xl border border-white/[0.06] p-lg flex flex-col gap-md shadow-sm backdrop-blur-sm row-span-2">
+<div class="flex items-center gap-sm border-b border-outline-variant/10 pb-sm">
+<span class="material-symbols-outlined text-primary text-[20px]">toggle_on</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Comportamento</h3>
+</div>
+<div class="flex flex-col gap-lg mt-sm">
+<!-- Checkbox Item 1 -->
+<label class="flex items-start gap-md cursor-pointer group">
+<div class="relative w-[18px] h-[18px] mt-[2px] shrink-0">
+<input checked="" class="peer sr-only" type="checkbox"/>
+<div class="w-full h-full rounded-[5px] border border-outline-variant/30 peer-checked:border-transparent peer-checked:bg-gradient-to-br peer-checked:from-primary peer-checked:to-secondary flex items-center justify-center transition-all bg-surface-container">
+<span class="material-symbols-outlined text-[14px] text-white opacity-0 peer-checked:opacity-100 font-bold" style="font-variation-settings: 'wght' 700;">check</span>
+</div>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface group-hover:text-primary transition-colors">Colar automaticamente (Auto-paste)</span>
+<span class="font-caption text-caption text-on-surface-variant mt-1 normal-case font-normal leading-relaxed">Insere o texto transcrito diretamente no campo de texto ativo após o processamento.</span>
+</div>
+</label>
+<!-- Checkbox Item 2 -->
+<label class="flex items-start gap-md cursor-pointer group">
+<div class="relative w-[18px] h-[18px] mt-[2px] shrink-0">
+<input checked="" class="peer sr-only" type="checkbox"/>
+<div class="w-full h-full rounded-[5px] border border-outline-variant/30 peer-checked:border-transparent peer-checked:bg-gradient-to-br peer-checked:from-primary peer-checked:to-secondary flex items-center justify-center transition-all bg-surface-container">
+<span class="material-symbols-outlined text-[14px] text-white opacity-0 peer-checked:opacity-100 font-bold" style="font-variation-settings: 'wght' 700;">check</span>
+</div>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface group-hover:text-primary transition-colors">Mostrar Overlay de Gravação</span>
+<span class="font-caption text-caption text-on-surface-variant mt-1 normal-case font-normal leading-relaxed">Exibe uma barra flutuante minimalista na parte inferior da tela enquanto grava.</span>
+</div>
+</label>
+<!-- Checkbox Item 3 -->
+<label class="flex items-start gap-md cursor-pointer group">
+<div class="relative w-[18px] h-[18px] mt-[2px] shrink-0">
+<input class="peer sr-only" type="checkbox"/>
+<div class="w-full h-full rounded-[5px] border border-outline-variant/30 peer-checked:border-transparent peer-checked:bg-gradient-to-br peer-checked:from-primary peer-checked:to-secondary flex items-center justify-center transition-all bg-surface-container group-hover:border-outline">
+<span class="material-symbols-outlined text-[14px] text-white opacity-0 peer-checked:opacity-100 font-bold" style="font-variation-settings: 'wght' 700;">check</span>
+</div>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface group-hover:text-primary transition-colors">Iniciar com o Sistema (Autostart)</span>
+<span class="font-caption text-caption text-on-surface-variant mt-1 normal-case font-normal leading-relaxed">Abre o Sussurro em segundo plano ao ligar o computador.</span>
+</div>
+</label>
+</div>
+</section>
+<!-- Avançado Section (Collapsible) -->
+<section class="bg-surface-container-low rounded-xl border border-white/[0.06] shadow-sm backdrop-blur-sm overflow-hidden">
+<details class="group">
+<summary class="flex items-center justify-between p-lg cursor-pointer list-none hover:bg-surface-container/50 transition-colors">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-outline text-[20px] group-hover:text-primary transition-colors">terminal</span>
+<h3 class="font-headline-md text-headline-md text-on-surface group-hover:text-primary transition-colors">Avançado</h3>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant transition-transform group-open:rotate-180">expand_more</span>
+</summary>
+<div class="p-lg pt-0 border-t border-outline-variant/5 flex flex-col gap-md">
+<div class="flex flex-col gap-xs">
+<label class="font-label-sm text-label-sm text-on-surface-variant">Beam Size</label>
+<input class="w-full accent-primary" max="10" min="1" type="range" value="5"/>
+<div class="flex justify-between font-caption text-caption text-outline">
+<span>Rápido</span>
+<span>Preciso</span>
+</div>
+</div>
+<div class="flex items-center justify-between py-sm">
+<span class="font-body-sm text-body-sm text-on-surface">Logs de Depuração</span>
+<button class="px-md py-xs rounded-md border border-outline-variant/30 text-on-surface hover:bg-surface-container hover:text-primary transition-colors font-label-sm text-label-sm">Abrir Pasta</button>
+</div>
+</div>
+</details>
+</section>
+</div>
+<!-- Save/Action Bar at bottom (optional but good for settings) -->
+<div class="mt-xl pt-lg border-t border-outline-variant/10 flex justify-end">
+<button class="bg-gradient-to-r from-primary to-secondary text-on-primary-fixed font-label-md text-label-md px-xl py-sm rounded-lg hover:opacity-90 transition-opacity shadow-[0_0_15px_rgba(192,193,255,0.2)]">
+                    Salvar Alterações
+                </button>
+</div>
+</div>
+</main>
+</body></html>

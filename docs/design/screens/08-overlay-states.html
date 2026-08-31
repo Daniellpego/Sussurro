@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sussurro - Floating Overlay States</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Courier+Prime&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed-variant": "#8c0053",
+                        "surface-container-low": "#1a1c20",
+                        "primary": "#c0c1ff",
+                        "primary-fixed": "#e1e0ff",
+                        "error": "#ffb4ab",
+                        "surface-container-high": "#282a2e",
+                        "on-primary": "#1000a9",
+                        "secondary": "#ffb0cd",
+                        "background": "#111317",
+                        "outline": "#908fa0",
+                        "primary-container": "#8083ff",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "on-secondary": "#640039",
+                        "surface-dim": "#111317",
+                        "on-secondary-fixed": "#3e0022",
+                        "on-tertiary": "#2d3037",
+                        "on-primary-fixed": "#07006c",
+                        "on-surface": "#e2e2e8",
+                        "outline-variant": "#464554",
+                        "on-tertiary-fixed-variant": "#44474e",
+                        "on-tertiary-container": "#272a30",
+                        "tertiary": "#c4c6cf",
+                        "inverse-on-surface": "#2f3035",
+                        "on-secondary-container": "#ffbad3",
+                        "on-tertiary-fixed": "#191c22",
+                        "surface-tint": "#c0c1ff",
+                        "on-primary-container": "#0d0096",
+                        "on-error-container": "#ffdad6",
+                        "inverse-primary": "#494bd6",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "on-surface-variant": "#c7c4d7",
+                        "secondary-container": "#aa0266",
+                        "inverse-surface": "#e2e2e8",
+                        "secondary-fixed": "#ffd9e4",
+                        "on-background": "#e2e2e8",
+                        "surface-container-highest": "#333539",
+                        "on-error": "#690005",
+                        "secondary-fixed-dim": "#ffb0cd",
+                        "tertiary-fixed-dim": "#c4c6cf",
+                        "tertiary-container": "#8e9098",
+                        "surface": "#111317",
+                        "tertiary-fixed": "#e1e2eb",
+                        "surface-bright": "#37393e",
+                        "error-container": "#93000a",
+                        "surface-container-lowest": "#0c0e12",
+                        "surface-container": "#1e2024",
+                        "surface-variant": "#333539"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xs": "0.25rem",
+                        "window_margin": "12px",
+                        "xl": "2rem",
+                        "md": "1rem",
+                        "lg": "1.5rem",
+                        "gutter": "16px",
+                        "sm": "0.5rem"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "caption": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "display": ["Inter"],
+                        "label-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "mono-label": ["Courier Prime"],
+                        "body-lg": ["Inter"],
+                        "headline-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["22px", { "lineHeight": "28px", "fontWeight": "500" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "caption": ["11px", { "lineHeight": "14px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "display": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "label-md": ["13px", { "lineHeight": "18px", "fontWeight": "500" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "mono-label": ["12px", { "lineHeight": "12px", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "26px", "fontWeight": "400" }],
+                        "headline-lg": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #0B0D11;
+        }
+        
+        .glass-pill {
+            background-color: rgba(20, 23, 29, 0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #8083ff 0%, #ffb0cd 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #8083ff 0%, #ffb0cd 100%);
+        }
+
+        .recording-glow {
+            position: relative;
+        }
+        
+        .recording-glow::after {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            background: linear-gradient(135deg, #8083ff, #ffb0cd);
+            opacity: 0.15;
+            filter: blur(20px);
+            border-radius: 32px;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* Waveform Animation Simulation */
+        .wave-bar {
+            width: 3px;
+            border-radius: 2px;
+            background: linear-gradient(to bottom, #8083ff, #ffb0cd);
+            animation: wave 1s ease-in-out infinite alternate;
+        }
+
+        @keyframes wave {
+            0% { height: 8px; }
+            100% { height: 24px; }
+        }
+
+        /* Staggered animation delays for waveform */
+        .wave-bar:nth-child(1) { animation-delay: 0.0s; height: 12px; }
+        .wave-bar:nth-child(2) { animation-delay: 0.1s; height: 18px; }
+        .wave-bar:nth-child(3) { animation-delay: 0.2s; height: 10px; }
+        .wave-bar:nth-child(4) { animation-delay: 0.3s; height: 22px; }
+        .wave-bar:nth-child(5) { animation-delay: 0.4s; height: 16px; }
+        .wave-bar:nth-child(6) { animation-delay: 0.5s; height: 14px; }
+        .wave-bar:nth-child(7) { animation-delay: 0.6s; height: 20px; }
+        .wave-bar:nth-child(8) { animation-delay: 0.7s; height: 8px;  }
+        .wave-bar:nth-child(9) { animation-delay: 0.8s; height: 18px; }
+        .wave-bar:nth-child(10) { animation-delay: 0.9s; height: 12px; }
+        .wave-bar:nth-child(11) { animation-delay: 0.8s; height: 20px; }
+        .wave-bar:nth-child(12) { animation-delay: 0.7s; height: 14px; }
+        .wave-bar:nth-child(13) { animation-delay: 0.6s; height: 10px; }
+        .wave-bar:nth-child(14) { animation-delay: 0.5s; height: 22px; }
+        .wave-bar:nth-child(15) { animation-delay: 0.4s; height: 16px; }
+        .wave-bar:nth-child(16) { animation-delay: 0.3s; height: 8px;  }
+        .wave-bar:nth-child(17) { animation-delay: 0.2s; height: 18px; }
+        .wave-bar:nth-child(18) { animation-delay: 0.1s; height: 12px; }
+
+        /* Pulse Animation */
+        .pulse-dot {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background-color: #e2e2e8;
+            animation: pulse 1.4s infinite ease-in-out both;
+        }
+
+        .pulse-dot:nth-child(1) { animation-delay: -0.32s; }
+        .pulse-dot:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes pulse {
+            0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-8 overflow-hidden text-on-surface font-body-md antialiased">
+<div class="flex flex-col xl:flex-row gap-8 items-center justify-center w-full max-w-[1200px] mx-auto">
+<!-- State 1: Recording -->
+<div class="relative w-[360px] h-[64px]">
+<div class="glass-pill w-full h-full rounded-[32px] flex items-center px-4 justify-between recording-glow relative z-10">
+<!-- Left: Mode Chip & Actions -->
+<div class="flex items-center gap-3">
+<button class="w-8 h-8 rounded-full bg-surface-container-high hover:bg-surface-container-highest transition-colors flex items-center justify-center border border-outline-variant/20">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">stop</span>
+</button>
+<div class="bg-surface-container-high/50 border border-outline-variant/10 rounded-md px-2 py-0.5">
+<span class="font-caption text-[10px] uppercase text-tertiary tracking-wider">RAW</span>
+</div>
+</div>
+<!-- Center: Waveform -->
+<div class="flex items-center gap-[2px] h-[24px]">
+<div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+<div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+<div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+<div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+<div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+<div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+</div>
+<!-- Right: Timer -->
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full gradient-bg animate-pulse"></div>
+<span class="font-mono-label text-[13px] text-primary-fixed">0:03</span>
+</div>
+</div>
+</div>
+<!-- State 2: Transcribing -->
+<div class="relative w-[360px] h-[64px]">
+<div class="glass-pill w-full h-full rounded-[32px] flex items-center px-4 justify-between relative z-10">
+<!-- Left: Mode Chip -->
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px] text-on-surface-variant opacity-50">mic</span>
+</div>
+<div class="bg-surface-container-high/50 border border-outline-variant/10 rounded-md px-2 py-0.5">
+<span class="font-caption text-[10px] uppercase text-tertiary tracking-wider">RAW</span>
+</div>
+</div>
+<!-- Center: Pulse Label -->
+<div class="flex items-center gap-2 absolute left-1/2 -translate-x-1/2">
+<span class="font-label-sm text-on-surface-variant italic">transcrevendo</span>
+<div class="flex gap-1 items-center h-full pt-1">
+<div class="pulse-dot"></div>
+<div class="pulse-dot"></div>
+<div class="pulse-dot"></div>
+</div>
+</div>
+<!-- Right: Empty space for balance -->
+<div class="w-10"></div>
+</div>
+</div>
+<!-- State 3: Done -->
+<div class="relative w-[360px] h-[64px]">
+<div class="glass-pill w-full h-full rounded-[32px] flex items-center px-4 justify-between relative z-10">
+<!-- Left: Mode Chip -->
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px] text-on-surface-variant opacity-50">mic</span>
+</div>
+<div class="bg-surface-container-high/50 border border-outline-variant/10 rounded-md px-2 py-0.5">
+<span class="font-caption text-[10px] uppercase text-tertiary tracking-wider">RAW</span>
+</div>
+</div>
+<!-- Center: OK Status -->
+<div class="flex items-center gap-2 absolute left-1/2 -translate-x-1/2">
+<div class="w-4 h-4 rounded-full bg-[#10b981]/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-[12px] text-[#10b981]" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<span class="font-label-md text-on-surface">ok</span>
+</div>
+<!-- Right: Open Action -->
+<div class="flex items-center">
+<button class="w-8 h-8 rounded-full hover:bg-surface-container-high transition-colors flex items-center justify-center text-on-surface-variant hover:text-primary">
+<span class="material-symbols-outlined text-[18px]">open_in_new</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</body></html>
