@@ -1,18 +1,20 @@
 # -*- mode: python ; coding: utf-8 -*-
 """PyInstaller spec for Sussurro.
 
-One-folder build em `dist/Sussurro/`:
+Multi-variant one-folder build em `dist/Sussurro/`:
+- SUSSURRO_VARIANT=cpu (padrão): build leve sem DLLs NVIDIA (~180 MB)
+- SUSSURRO_VARIANT=cuda: inclui DLLs CUDA 12.x / cuDNN v9 para aceleração GPU
 - entry point: sussurro/__main__.py -> Sussurro.exe
-- inclui DLLs CUDA do nvidia-cublas-cu12 e nvidia-cudnn-cu12
-- inclui binarios do ctranslate2, onnxruntime, av
-- exclui o modelo Whisper (~3 GB) — baixado na primeira execucao
+- exclui o modelo Whisper (~800 MB) — baixado na primeira execução com progresso real
 
 Build:
-    .\.venv\Scripts\pyinstaller.exe --noconfirm sussurro.spec
+    $env:SUSSURRO_VARIANT="cpu"; pyinstaller --noconfirm sussurro.spec
+    $env:SUSSURRO_VARIANT="cuda"; pyinstaller --noconfirm sussurro.spec
 """
 from __future__ import annotations
 
 import importlib.util
+import os
 import sys
 from pathlib import Path
 
@@ -24,10 +26,14 @@ from PyInstaller.utils.hooks import (
 
 
 block_cipher = None
+variant = os.environ.get("SUSSURRO_VARIANT", "cpu").strip().lower()
+is_cuda = variant in ("cuda", "gpu")
 
 
 def _find_nvidia_bin_dirs() -> list[tuple[str, str]]:
-    """Retorna [(src_dir, dest_dir_in_bundle), ...] das DLLs CUDA."""
+    """Retorna [(src_dir, dest_dir_in_bundle), ...] das DLLs CUDA se instaladas."""
+    if not is_cuda:
+        return []
     pairs: list[tuple[str, str]] = []
     for pkg, dest in (
         ("nvidia.cublas",       "nvidia/cublas/bin"),
@@ -44,7 +50,7 @@ def _find_nvidia_bin_dirs() -> list[tuple[str, str]]:
     return pairs
 
 
-# binarios extras: CUDA + ctranslate2 + onnxruntime + av
+# binários extras: ctranslate2 + onnxruntime + av
 binaries: list[tuple[str, str]] = []
 binaries += collect_dynamic_libs("ctranslate2")
 binaries += collect_dynamic_libs("onnxruntime")
@@ -62,8 +68,7 @@ def _optional_data(path: str, dest: str) -> list[tuple[str, str]]:
     return [(path, dest)] if Path(path).is_file() else []
 
 
-# Assets essenciais + cosméticos opcionais. Fontes têm fallback de sistema e
-# sons são opt-in, então o repositório pode ser distribuído sem binários extras.
+# Assets essenciais + cosméticos opcionais
 for path, dest in (
     ("sussurro/assets/sussurro.ico", "sussurro/assets"),
     ("sussurro/assets/sussurro.png", "sussurro/assets"),
@@ -75,12 +80,13 @@ for path, dest in (
 ):
     datas += _optional_data(path, dest)
 
-# CUDA bin dirs como datas (mantendo estrutura de pastas)
-for src_dir, dest_dir in _find_nvidia_bin_dirs():
-    for dll in Path(src_dir).glob("*.dll"):
-        datas.append((str(dll), dest_dir))
+# CUDA bin dirs como datas (apenas se variant=cuda)
+if is_cuda:
+    for src_dir, dest_dir in _find_nvidia_bin_dirs():
+        for dll in Path(src_dir).glob("*.dll"):
+            datas.append((str(dll), dest_dir))
 
-# hidden imports do PySide6 e nvidia
+# hidden imports do PySide6, faster-whisper e ctranslate2
 hiddenimports: list[str] = []
 hiddenimports += collect_submodules("sussurro")
 hiddenimports += [

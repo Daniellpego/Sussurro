@@ -148,14 +148,40 @@ class WhisperDownloadWorker(QThread):
         self.finished_ok.emit()
 
 
+import shutil
+import tempfile
+
+# ------------------------------------------------------------------------ Espaço em Disco
+
+def get_free_disk_space_gb(path: str | Path | None = None) -> float:
+    """Retorna espaço livre em GB na unidade do sistema/usuário."""
+    target = path or os.environ.get("SYSTEMDRIVE", "C:")
+    try:
+        usage = shutil.disk_usage(str(target))
+        return usage.free / 1e9
+    except OSError:
+        return 0.0
+
+
 # ------------------------------------------------------------------------ Ollama
+
+OLLAMA_INSTALLER_URL = "https://ollama.com/download/OllamaSetup.exe"
+
 
 def ollama_installed() -> bool:
     """Ollama no PATH ou rodando na API local."""
     if ollama_client.is_running():
         return True
     from shutil import which
-    return which("ollama") is not None
+    if which("ollama") is not None:
+        return True
+    # Caminho padrão do instalador no Windows
+    local_app_data = os.environ.get("LOCALAPPDATA", "")
+    if local_app_data:
+        standard_path = Path(local_app_data) / "Programs" / "Ollama" / "ollama.exe"
+        if standard_path.exists():
+            return True
+    return False
 
 
 def ollama_running() -> bool:
@@ -165,6 +191,90 @@ def ollama_running() -> bool:
 def qwen_pulled() -> bool:
     models = ollama_client.list_models()
     return _QWEN_MODEL in models
+
+
+class OllamaInstallWorker(QThread):
+    """Baixa e executa o instalador oficial do Ollama em segundo plano."""
+
+    progress = Signal(float, float, float)  # feito_mb, total_mb, velocidade_mbps
+    status_changed = Signal(str)            # status textual da etapa
+    finished_ok = Signal()
+    failed = Signal(str)
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._cancelled = False
+
+    def cancel(self) -> None:
+        self._cancelled = True
+
+    def run(self) -> None:
+        import httpx
+
+        # 1. Checagem de espaço em disco
+        free_gb = get_free_disk_space_gb()
+        if free_gb < 2.0:
+            self.failed.emit(f"Espaço insuficiente em disco ({free_gb:.1f} GB livres; requer no mínimo 2.0 GB)")
+            return
+
+        self.status_changed.emit("Conectando aos servidores do Ollama…")
+        installer_path = Path(tempfile.gettempdir()) / "SussurroOllamaSetup.exe"
+
+        # 2. Download do OllamaSetup.exe
+        try:
+            with httpx.Client(follow_redirects=True, timeout=30.0) as client:
+                with client.stream("GET", OLLAMA_INSTALLER_URL) as resp:
+                    resp.raise_for_status()
+                    total_bytes = int(resp.headers.get("content-length", 0))
+                    total_mb = total_bytes / 1e6 if total_bytes else 70.0
+                    downloaded_bytes = 0
+                    t0 = time.monotonic()
+                    last_emit_t = t0
+
+                    with open(installer_path, "wb") as f:
+                        for chunk in resp.iter_bytes(chunk_size=65536):
+                            if self._cancelled:
+                                return
+                            f.write(chunk)
+                            downloaded_bytes += len(chunk)
+                            now = time.monotonic()
+                            if now - last_emit_t >= 0.2:
+                                speed_mbps = (downloaded_bytes / 1e6) / max(now - t0, 1e-3)
+                                self.progress.emit(downloaded_bytes / 1e6, total_mb, speed_mbps)
+                                self.status_changed.emit(f"Baixando Ollama ({downloaded_bytes / 1e6:.1f} / {total_mb:.1f} MB)…")
+                                last_emit_t = now
+
+            self.progress.emit(total_mb, total_mb, 0.0)
+        except Exception as exc:  # noqa: BLE001
+            self.failed.emit(f"Falha no download do Ollama: {exc}")
+            return
+
+        if self._cancelled:
+            return
+
+        # 3. Execução do instalador
+        self.status_changed.emit("Instalando Ollama silenciosamente…")
+        try:
+            proc = subprocess.Popen([str(installer_path), "/silent"])
+            # Aguarda até 60 segundos o instalador finalizar ou o daemon subir
+            t_start = time.monotonic()
+            while time.monotonic() - t_start < 60.0:
+                if self._cancelled:
+                    proc.kill()
+                    return
+                if ollama_running() or ollama_installed():
+                    break
+                time.sleep(1.0)
+        except Exception as exc:  # noqa: BLE001
+            self.failed.emit(f"Falha ao executar o instalador do Ollama: {exc}")
+            return
+
+        # 4. Confirmação
+        if ollama_running() or ollama_installed():
+            self.status_changed.emit("Ollama instalado com sucesso!")
+            self.finished_ok.emit()
+        else:
+            self.failed.emit("Instalação do Ollama concluída, mas o serviço não respondeu a tempo.")
 
 
 class QwenPullWorker(QThread):

@@ -186,24 +186,36 @@ class SetupWindow(FramelessWindow):
         card.setStyleSheet(
             f"QWidget#OlCard {{ background: {pal.surface}; "
             f"border: 1px solid {pal.border_subtle}; border-radius: 11px; }}")
-        lay = QHBoxLayout(card); lay.setContentsMargins(14, 12, 14, 12); lay.setSpacing(10)
-        self._ol_check = _Check(); self._ol_check.set_state("wait")
-        lay.addWidget(self._ol_check, 0, Qt.AlignmentFlag.AlignVCenter)
+        lay = QVBoxLayout(card)
+        lay.setContentsMargins(14, 12, 14, 12)
+        lay.setSpacing(8)
+
+        top = QHBoxLayout()
+        top.setSpacing(10)
+        self._ol_check = _Check()
+        self._ol_check.set_state("wait")
+        top.addWidget(self._ol_check, 0, Qt.AlignmentFlag.AlignVCenter)
         self._ol_label = QLabel("Verificando Ollama…")
         self._ol_label.setFont(theme.qfont(13, theme.W_MEDIUM))
         self._ol_label.setStyleSheet(
             f"color: {pal.text_primary}; background: transparent;")
-        lay.addWidget(self._ol_label); lay.addStretch(1)
+        top.addWidget(self._ol_label)
+        top.addStretch(1)
         self._ol_note = QLabel("")
         self._ol_note.setFont(theme.qfont(11.5))
         self._ol_note.setStyleSheet(
             f"color: {pal.text_tertiary}; background: transparent;")
-        lay.addWidget(self._ol_note)
-        self._ol_btn = kit.SecondaryButton("Instalar Ollama")
+        top.addWidget(self._ol_note)
+
+        self._ol_btn = kit.SecondaryButton("Instalar Automaticamente")
         self._ol_btn.setVisible(False)
-        self._ol_btn.clicked.connect(
-            lambda: webbrowser.open("https://ollama.com/download"))
-        lay.addWidget(self._ol_btn)
+        self._ol_btn.clicked.connect(self._install_ollama)
+        top.addWidget(self._ol_btn)
+
+        lay.addLayout(top)
+        self._ol_bar = kit.ProgressBar(0.0)
+        self._ol_bar.setVisible(False)
+        lay.addWidget(self._ol_bar)
         return card
 
     # --------------------------------------------------------------- detecção
@@ -214,18 +226,11 @@ class SetupWindow(FramelessWindow):
             name, gb = gpu
             self._gpu_check.set_state("ok")
             self._gpu_box._label.setText("GPU detectada")  # type: ignore[attr-defined]
-            self._gpu_val.setText(f"{name} · {gb} GB")
+            self._gpu_val.setText(f"{name} · {gb} GB (Aceleração CUDA)")
         else:
-            # honesto: o app roda em CUDA; sem GPU NVIDIA não funciona (sem
-            # falsa promessa de CPU). Box vira âmbar.
-            amber = theme.palette().state(theme.WARNING)
-            self._gpu_check.set_state("warn")
-            self._gpu_box._label.setText("GPU NVIDIA não detectada")  # type: ignore[attr-defined]
-            self._gpu_val.setText("requer GPU NVIDIA")
-            self._gpu_val.setStyleSheet(f"color: {amber}; background: transparent;")
-            self._gpu_box.setStyleSheet(
-                f"QWidget#GpuBox {{ background: {theme.rgba(amber, 0.07)}; "
-                f"border: 1px solid {theme.rgba(amber, 0.20)}; border-radius: 11px; }}")
+            self._gpu_check.set_state("ok")
+            self._gpu_box._label.setText("Modo CPU")  # type: ignore[attr-defined]
+            self._gpu_val.setText("Whisper Turbo INT8 (Execução local)")
 
         # Whisper
         if setup_check.whisper_cached(self._cfg.model_size):
@@ -261,19 +266,52 @@ class SetupWindow(FramelessWindow):
             self._ol_label.setText("Ollama rodando")
             self._ol_note.setText("")
             self._ol_btn.setVisible(False)
+            self._ol_bar.setVisible(False)
             self._setup_qwen(enabled=True)
         elif installed:
             self._ol_check.set_state("warn")
             self._ol_label.setText("Ollama instalado")
             self._ol_note.setText("inicie o Ollama")
             self._ol_btn.setVisible(False)
+            self._ol_bar.setVisible(False)
             self._setup_qwen(enabled=False)
         else:
             self._ol_check.set_state("wait")
             self._ol_label.setText("Ollama")
-            self._ol_note.setText("opcional")
+            self._ol_note.setText("opcional para IA")
+            self._ol_btn.setText("Instalar Automaticamente")
             self._ol_btn.setVisible(True)
+            self._ol_bar.setVisible(False)
             self._setup_qwen(enabled=False)
+
+    def _install_ollama(self) -> None:
+        self._ol_btn.setVisible(False)
+        self._ol_bar.setVisible(True)
+        self._ol_bar.set_value(0.0)
+        self._ol_worker = setup_check.OllamaInstallWorker()
+        self._ol_worker.progress.connect(
+            lambda done, total, speed: (
+                self._ol_bar.set_value(done / total if total else 0.0),
+                self._ol_note.setText(f"{done:.1f}/{total:.1f} MB ({speed:.1f} MB/s)"),
+            )
+        )
+        self._ol_worker.status_changed.connect(
+            lambda msg: self._ol_label.setText(msg)
+        )
+        self._ol_worker.finished_ok.connect(self._refresh_ollama)
+        self._ol_worker.failed.connect(self._on_ol_failed)
+        self._ol_worker.start()
+
+    def _on_ol_failed(self, error: str) -> None:
+        self._ol_check.set_state("warn")
+        self._ol_label.setText("Falha no setup do Ollama")
+        self._ol_note.setText("clique para abrir site")
+        self._ol_btn.setText("Baixar Manualmente")
+        self._ol_btn.setVisible(True)
+        self._ol_btn.clicked.disconnect()
+        self._ol_btn.clicked.connect(
+            lambda: webbrowser.open("https://ollama.com/download")
+        )
 
     def _setup_qwen(self, enabled: bool) -> None:
         if enabled and setup_check.qwen_pulled():
@@ -309,7 +347,12 @@ class SetupWindow(FramelessWindow):
 
     def stop_workers(self) -> None:
         """Cancela e encerra os workers de download (close + shutdown)."""
-        for w in (self._dl_worker, self._pull_worker):
+        workers = [
+            getattr(self, "_dl_worker", None),
+            getattr(self, "_pull_worker", None),
+            getattr(self, "_ol_worker", None),
+        ]
+        for w in workers:
             if w is not None and w.isRunning():
                 w.cancel()
                 w.quit()
