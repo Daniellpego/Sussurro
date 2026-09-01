@@ -4,6 +4,17 @@ Este arquivo registra as mudanças relevantes de cada versão. O formato segue [
 
 ## [Não lançado]
 
+### Adicionado
+
+- Transcrição parcial no HUD durante gravações mais longas.
+- Métricas locais de latência por etapa em `latency.jsonl`.
+- Benchmark reproduzível para o modelo `large-v3-turbo` em CPU e CUDA.
+
+### Alterado
+
+- O microfone permanece preparado com um pré-buffer de 300 ms enquanto o app está ativo.
+- O modelo de transcrição é carregado e aquecido antes de o atalho ser habilitado.
+
 ## [0.1.1] - 2026-09-01
 
 ### Corrigido

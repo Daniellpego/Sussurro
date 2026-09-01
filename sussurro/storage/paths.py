@@ -47,3 +47,7 @@ def history_path() -> Path:
 
 def log_path() -> Path:
     return app_data_dir() / "sussurro.log"
+
+
+def latency_path() -> Path:
+    return app_data_dir() / "latency.jsonl"
