@@ -77,3 +77,16 @@ Auditoria abrangente e independente cobrindo:
     - `SussurroSetup-CPU.exe` (SHA-256: `be2b4f173a72a5497e9706583e489ffe9b1dd610bca6af99c1369bbf3923f522`)
     - `SussurroSetup-CUDA.exe` (SHA-256: `f9e702944e262ef164fa706740e40c8352b7515c92c8af6922a1e417752f267b`)
     - `checksums-sha256.txt` (SHA-256: `77bb4d4a19b52c3f244f55f260f7fe1514b1e0f14f4ec8aa7a27706beb1af9f6`)
+
+---
+
+## 7. Auditoria de Desempenho e Pendência Metodológica para Próxima Sessão
+
+- **Consumo de Memória e Boot Real:**
+  - Inicialização a frio da casca do app: `~206.92 ms` (RAM base: `~42.08 MB`).
+  - Inicialização com motor Whisper carregado e aquecido em CPU: `~3.77 s` (RAM efetiva: `~350 MB a 360 MB Working Set` / `856 MB Private Memory`).
+  - Estabilidade de Memória: 10 ciclos de inferência contínua com variação líquida de apenas `+0.64 MB` (zero vazamento de memória).
+- **Ressalva Metodológica Crítica (Item Pendente):**
+  - A medição de latência em CPU pura (~15s a 25s) foi executada utilizando o modelo `small` disponível no cache local.
+  - **Ação obrigatória para a próxima sessão:** Revalidar a latência real de transcrição ponta a ponta com o modelo oficial `large-v3-turbo` (CTranslate2 INT8) e com o daemon local do Ollama (Qwen 2.5) ativo, comparando o tempo de resposta em CPU vs GPU NVIDIA (CUDA).
+
