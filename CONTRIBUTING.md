@@ -1,36 +1,45 @@
-# Contribuindo com o Sussurro
+# Contribuindo
 
-## Ambiente
+Obrigado pelo interesse em melhorar o Sussurro. Antes de escrever código, procure por uma issue existente. Para mudanças maiores, abra uma issue curta descrevendo o problema e a solução proposta.
 
-O alvo oficial é Windows 10/11 e Python 3.11+.
+## Preparar o ambiente
+
+O desenvolvimento e os testes de integração devem ser feitos no Windows 10 ou 11 com Python 3.11 ou posterior.
 
 ```powershell
+git clone https://github.com/Daniellpego/Sussurro.git
+cd Sussurro
 py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 pip install -r requirements-dev.txt
 ```
 
-Para validar CUDA localmente, instale também as dependências de `requirements-gpu.txt`.
+Para trabalhar na variante NVIDIA, instale também `requirements-gpu.txt`.
 
-## Antes do pull request
+## Relatar um erro
+
+Abra um bug report e informe:
+
+- versão do Sussurro;
+- variante CPU ou CUDA;
+- versão e edição do Windows;
+- passos mínimos para reproduzir;
+- resultado esperado e resultado observado;
+- trecho relevante do log, sem transcrições ou dados pessoais.
+
+## Enviar um pull request
+
+Mantenha cada pull request focado em um problema. Correções devem incluir um teste de regressão quando isso for viável. Descreva qualquer verificação manual necessária para áudio, atalhos globais, GPU ou colagem no Windows.
+
+Execute antes de enviar:
 
 ```powershell
 ruff check sussurro scripts tests
-python scripts\validate_all.py
+python scripts/validate_all.py
+pytest
 ```
 
-Mudanças relacionadas a áudio, GPU, hotkeys globais ou colagem Win32 também devem ser verificadas manualmente no Windows real.
+O Ruff define o estilo do código. Não misture reformatações sem relação com a mudança e não versione ambientes virtuais, caches, modelos, builds, logs ou gravações.
 
-## Organização
-
-- Código da aplicação: `sussurro/`.
-- Testes automatizados: `tests/`.
-- Scripts operacionais/smoke: `scripts/`.
-- Documentação: `docs/`.
-- Assets necessários em runtime: `sussurro/assets/`.
-
-Não versione `.venv`, caches, modelos baixados, builds, dumps de `%APPDATA%`, logs, credenciais ou arquivos de áudio pessoais.
-
-## Escopo das mudanças
-
-Prefira PRs pequenos e com comportamento explícito. Correções devem incluir teste de regressão quando for viável. Evite alterar o fluxo de push-to-talk, foco da janela ou persistência sem explicar o impacto no PR.
+Use mensagens de commit curtas no imperativo. Os prefixos `feat:`, `fix:`, `docs:`, `test:`, `refactor:` e `chore:` são os mais comuns neste repositório.

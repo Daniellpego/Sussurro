@@ -48,10 +48,9 @@ logs/
 sussurro/assets/fonts/*.ttf
 sussurro/assets/fonts/*.otf
 
-# IDE / ferramentas locais
+# Editores
 .vscode/
 .idea/
-.claude/
 *.swp
 
 # Sistema operacional
@@ -61,10 +60,4 @@ Desktop.ini
 
 # Pacotes temporários
 *.zip
-
-# Tool and Agent state
-.agents/
-.simplicio/
-Sussurro-final-publicacao/
-_repo_*/
 

@@ -1,132 +1,49 @@
-# Arquitetura do Sussurro
+# Arquitetura
 
-Este documento descreve a arquitetura **implementada e em produção** no repositório atual. O plano histórico original foi preservado em [`docs/legacy/INITIAL_PLAN.md`](./legacy/INITIAL_PLAN.md) apenas como referência e não deve ser tratado como especificação vigente.
+O Sussurro é uma aplicação de bandeja para Windows. A interface usa PySide6, enquanto a captura global de teclado e mouse e a colagem de texto usam integrações específicas do Windows.
 
----
+## Fluxo de uma transcrição
 
-## 1. Visão Geral
+1. `hotkey/` detecta quando o atalho de push-to-talk é pressionado.
+2. `audio/` captura áudio mono a 16 kHz enquanto o atalho permanece ativo.
+3. `asr/whisper.py` envia o áudio ao `faster-whisper`. A seleção de dispositivo tenta CUDA quando configurado e volta para CPU se a inicialização falhar.
+4. `asr/postprocess.py` aplica comandos de pontuação, capitalização, substituições do dicionário e macros em português.
+5. Nos modos que usam revisão, `llm/` envia o texto ao Ollama local. O modo raw ignora essa etapa.
+6. `storage/` grava o histórico e `inject/paste.py` cola o resultado na janela que estava ativa.
+7. `ui/overlay.py` acompanha o fluxo com os estados de captura, transcrição e revisão.
 
-O **SUSURRO** é uma aplicação desktop nativa para Windows (10 e 11) desenvolvida com arquitetura *local-first*, modular e orientada a baixa latência. Ele opera de forma não intrusiva na bandeja do sistema (*System Tray*), capturando voz via *Push-to-Talk* global, transcrevendo em tempo real com `faster-whisper` (Whisper Large-v3-Turbo / CTranslate2), aplicando pós-processamento determinístico de português e comandos de voz, passando opcionalmente por refinamento local via Ollama (Qwen 2.5), e injetando o texto final diretamente no aplicativo em foco via Windows API (Win32).
+## Módulos
 
-```text
-       +-------------------------------------------------------------+
-       |                  Global Input Listener                      |
-       |     pynput: Teclado (Ctrl+Win) / Mouse (Botão Lateral)      |
-       +------------------------------+------------------------------+
-                                      |
-                                      v
-       +-------------------------------------------------------------+
-       |                  Audio Capture Pipeline                     |
-       |        sounddevice: 16 kHz Mono Float32 Ring Buffer         |
-       +------------------------------+------------------------------+
-                                      |
-                                      v
-       +-------------------------------------------------------------+
-       |                  ASR Transcription Worker                   |
-       |  faster-whisper (Large-v3-Turbo / Small / Medium)           |
-       |  Aceleração: CUDA FP16 (com auto fallback gracioso pra CPU) |
-       +------------------------------+------------------------------+
-                                      |
-                                      v
-       +-------------------------------------------------------------+
-       |                  Deterministic Postprocess                  |
-       |  - Normalização de pontuação e capitalização semântica      |
-       |  - Comandos de voz (novo parágrafo, vírgula, interrogação)  |
-       |  - Dicionário do Usuário (substituições literais)           |
-       |  - Dicionários Especializados (Jurídico, Médico, Dev)       |
-       |  - Expansão de Macros PT-BR (CPF, CNPJ, Processo, etc.)     |
-       +------------------------------+------------------------------+
-                                      |
-                         +------------+------------+
-                         |                         |
-               Modo Raw? |                         | Modos Inteligentes
-                         v                         v (Clean, Formal, etc.)
-       +------------------------------+  +---------------------------+
-       |         Direto para          |  |     Local LLM Worker      |
-       |        Armazenamento         |  |   Ollama HTTP API         |
-       |         e Injeção            |  |   Qwen 2.5 (VRAM isolada) |
-       +--------------+---------------+  +-------------+-------------+
-                      |                                |
-                      +----------------+---------------+
-                                       |
-                                       v
-       +-------------------------------------------------------------+
-       |                   Storage & History Layer                   |
-       |     history.json (Append-only FIFO com rotação de 500)      |
-       |     config.toml  (Escrita atômica segura)                   |
-       |     modes.json   (Presets e prompts customizáveis)          |
-       +-------------------------------+-----------------------------+
-                                       |
-                                       v
-       +-------------------------------------------------------------+
-       |                     Win32 Paste Engine                      |
-       |  1. Salva estado anterior da Área de Transferência          |
-       |  2. Injeta texto via Clipboard API + Sintetização Ctrl+V    |
-       |  3. Fallback de compatibilidade: Shift+Insert / SendInput   |
-       |  4. Restaura estado original do Clipboard com debounce      |
-       +-------------------------------------------------------------+
-```
+### Aplicação e interface
 
----
+`sussurro/app.py` cria a aplicação Qt, conecta os serviços e controla o encerramento. `sussurro/ui/` contém a janela principal, o menu da bandeja, o overlay, o onboarding e os componentes visuais reutilizáveis.
 
-## 2. Módulos do Sistema
+Trabalho pesado não deve bloquear a thread da interface. Transcrição e revisão são executadas fora dela e retornam o resultado por sinais do Qt.
 
-### 2.1 Orquestração Central (`sussurro/app.py`)
-- Ponto de entrada do runtime Qt. Inicializa o `QApplication`, carrega temas, orquestra janelas (Configurações, Onboarding, Histórico, Modos), instancia o HUD flutuante (`FloatingHUD`), registra os listeners de atalhos globais e gerencia o ciclo de vida dos workers em segundo plano (`WhisperWorker`, `LLMWorker`).
-- Gerencia a política de economia inteligente de VRAM (`smart_economy` e `unload_idle`), descarregando modelos ociosos sem interferir em outras instâncias do Ollama.
+### Entrada de áudio
 
-### 2.2 Captura de Áudio (`sussurro/audio/`)
-- `audio/capture.py`: Gerencia streams do `sounddevice` em 16.000 Hz mono com cálculo de RMS em tempo real para alimentação do indicador visual de volume do HUD.
-- Possui resiliência contra desconexão de dispositivos e recuperação graciosa de falhas de hardware de áudio.
+`sussurro/audio/capture.py` encapsula o stream do `sounddevice` e entrega amostras `float32` ao pipeline. Os listeners globais ficam em `sussurro/hotkey/` e só controlam o início e o fim da captura.
 
-### 2.3 Reconhecimento de Voz (`sussurro/asr/`)
-- `asr/whisper.py`: Carrega e executa instâncias do `faster-whisper.WhisperModel`. Suporta os modelos `large-v3-turbo` (padrão de alta precisão), `large-v3`, `medium`, `small`, `base` e `tiny`.
-- Implementa detecção automática de hardware com aceleração CUDA FP16/INT8 e fallback transparente para CPU (`int8`) caso CUDA/cuDNN não estejam presentes.
-- `asr/postprocess.py`: Motor determinístico de formatação textual:
-  - Capitalização de início de frases e pós-pontuação.
-  - Reconhecimento e conversão de comandos de voz em pontuação real (`vírgula`, `ponto final`, `novo parágrafo`, `ponto de interrogação`, `dois pontos`).
-  - Dicionário fonético e termos personalizados.
-  - Expansão de macros com padrões regex (ex: formatação de números de processos, CPF, datas e termos técnicos).
+### Reconhecimento e pós-processamento
 
-### 2.4 Integração LLM Local (`sussurro/llm/`)
-- `llm/ollama.py`: Cliente HTTP síncrono/assíncrono para o daemon do Ollama em `http://127.0.0.1:11434`.
-- `llm/modes.py`: Gerenciamento de modos de escrita (`Raw`, `Clean`, `Formal`, `Resumo`, `Bullet Points`, `Traduzir EN`, `Traduzir ES`). Permite ao usuário criar modos personalizados com prompts customizados.
-- `llm/worker.py`: `QThread` assíncrona para processamento sem bloqueio da interface do usuário.
-- Mecanismo de isolamento: as funções `unload_models` e `unload_model` descarregam exclusivamente os modelos registrados pelo Sussurro (`qwen2.5:*`), prevenindo o descarregamento inadvertido de modelos externos do usuário.
+`sussurro/asr/whisper.py` concentra carregamento de modelo, escolha de compute type e transcrição. O pós-processamento determinístico fica separado em `sussurro/asr/postprocess.py`, o que permite testá-lo sem carregar um modelo.
 
-### 2.5 Injeção de Texto no Windows (`sussurro/inject/`)
-- `inject/paste.py`: Injeção não intrusiva de texto no aplicativo ativo do Windows.
-- Preserva a janela em foco antes da gravação através de chamadas Win32 (`GetForegroundWindow` / `SetForegroundWindow`).
-- Estratégia em camadas:
-  1. Transferência atômica para o clipboard do Windows + emissão de `Ctrl+V` sintetizado via `SendInput`.
-  2. Fallback para `Shift+Insert` (para terminais e prompts de comando).
-  3. Fallback para injeção caractere-a-caractere via `SendInput` com suporte completo a UTF-16 / surrogate pairs (emojis e caracteres especiais).
-  4. Restauração do clipboard original com proteção contra race conditions.
+### Revisão local
 
-### 2.6 Camada de Armazenamento e Persistência (`sussurro/storage/`)
-- Localização padrão: `%APPDATA%\Sussurro` (resolvido dinamicamente via `storage/paths.py`).
-- `storage/config.py`: Configurações salvas em formato TOML com validação de esquema e escrita atômica.
-- `storage/history.py`: Histórico local append-only com rotação FIFO (máximo 500 entradas), serializado em JSON formatado.
-- `storage/dictionary.py`: Dicionário customizado e regras de substituição de termos.
-- `storage/autostart.py`: Integração com o Registro do Windows (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`).
+`sussurro/llm/ollama.py` é o cliente HTTP do Ollama em `127.0.0.1`. `modes.py` mantém os modos disponíveis e `worker.py` executa a revisão. O Sussurro só descarrega modelos que ele próprio gerencia.
 
-### 2.7 Interface do Usuário (`sussurro/ui/`)
-- Desenvolvida em PySide6/Qt com tema moderno (*Dark/Light mode*), paleta cromática sofisticada e componentes sem bordas com cantos arredondados e suporte a DWM / Windows 11 Mica/Acrylic.
-- `ui/window.py`: Janela principal de configurações e controle de dispositivos.
-- `ui/overlay.py`: HUD flutuante translúcido com indicação de estado (*Ouvindo*, *Transcrevendo*, *Refinando*, *Concluído*).
-- `ui/history_ui.py`: Dashboard completo de histórico com busca em tempo real, agrupamento por data (*Hoje*, *Ontem*, *Data*), cópia em um clique com feedback por toast e exclusão seletiva.
-- `ui/modes_ui.py`: Editor visual de modos e prompts de sistema do LLM.
-- `ui/setup_ui.py` & `setup_check.py`: Assistente de configuração inicial com detecção de hardware, download com barra de progresso do Whisper e do Ollama.
+### Persistência
 
----
+Configurações, modos, dicionário e histórico ficam em `%APPDATA%\Sussurro`. Escritas que substituem um arquivo usam um arquivo temporário no mesmo diretório e uma troca atômica. O histórico mantém no máximo 500 entradas.
 
-## 3. Empacotamento e Distribuição
+### Injeção de texto
 
-O pipeline de build é configurado para gerar duas variantes independentes e autocontidas:
+`sussurro/inject/paste.py` preserva a área de transferência, cola o texto por APIs Win32 e restaura o conteúdo anterior. O módulo trata texto UTF-16, inclusive caracteres fora do plano multilíngue básico.
 
-1. **Variante CPU (`SussurroSetup-CPU.exe`):**
-   - Binário PyInstaller de ~440 MB compactado via Inno Setup (LZMA2/Max) em instalador de ~110 MB.
-   - Ideal para qualquer notebook ou computador Windows 10/11 sem GPU dedicada.
-2. **Variante CUDA (`SussurroSetup-CUDA.exe`):**
-   - Binário PyInstaller de ~940 MB incluindo DLLs de runtime NVIDIA cuBLAS 12 e cuDNN 9, compactado em instalador de ~1.0 GB.
-   - Execução ultra-rápida em placas de vídeo NVIDIA GeForce RTX / GTX.
+## Empacotamento
+
+`sussurro.spec` gera o bundle com PyInstaller. `installer/sussurro.iss` produz instaladores separados para CPU e CUDA. Tags `v*` acionam `.github/workflows/release.yml`, que cria as duas variantes e publica os checksums SHA-256 junto dos executáveis.
+
+## Testes
+
+Os testes em `tests/` cobrem o pós-processamento, armazenamento, áudio, modos locais, instalação e fallback de hardware. Integrações com microfone, atalhos globais, GPU e foco de janela também precisam de verificação manual no Windows.

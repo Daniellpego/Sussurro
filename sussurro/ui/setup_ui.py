@@ -1,7 +1,7 @@
 """Primeiro uso (tela 09) — checklist de pré-requisitos.
 
 Reframe (decisão de escopo #3): estados mistos em vez de duas barras iguais.
-GPU (detecção) · Whisper (download real) · Ollama (gate de instalação) ·
+GPU (detecção) · Whisper (download) · Ollama (instalação) ·
 Qwen (pull opcional). "Continuar" libera assim que o Whisper terminar — o LLM
 é opcional.
 """
@@ -105,7 +105,7 @@ class SetupWindow(FramelessWindow):
         wrap.addWidget(self._wh_card)
         wrap.addSpacing(10)
 
-        # Ollama (gate)
+        # Ollama
         self._ol_card = self._ollama_row()
         wrap.addWidget(self._ol_card)
         wrap.addSpacing(10)

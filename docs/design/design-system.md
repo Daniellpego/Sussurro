@@ -1,7 +1,5 @@
 ---
-name: Obsidian Pulse
-source: Google Stitch project "Sussurro Voice Interface" (id 3417433058416388239)
-extracted_at: 2026-06-25
+name: Sussurro Quiet
 colors:
   surface: '#111317'
   surface-dim: '#111317'
@@ -113,65 +111,26 @@ spacing:
   gutter: 16px
 ---
 
-## Brand & Style
-The design system is engineered for a premium, local-first utility focused on speed, privacy, and technical excellence. The aesthetic leans heavily into **Glassmorphism** and **Minimalism**, drawing inspiration from modern productivity powerhouses.
+## Direção visual
 
-The UI should feel like a sophisticated instrument—unobtrusive when idle, but visually striking during interaction. It utilizes a deep, "ink-pool" background strategy to minimize eye strain and maximize the impact of soft indigo-to-pink glows. Layouts are strictly organized, prioritizing functional density and clarity, evoking a sense of calm and control.
+A interface usa fundos quase pretos, superfícies com pequena variação tonal e acentos em índigo e rosa. Os acentos ficam reservados para ações primárias, seleção e gravação ativa.
 
-## Colors
-The palette is rooted in a near-black foundation to provide a high-contrast backdrop for vibrant accents.
+## Tipografia
 
-- **Foundational Neutrals**: Use `#0B0D11` for the main canvas. Sidebars and secondary panels use subtly lighter shades to create structural separation without harsh lines.
-- **Accents**: Indigo (`#6366F1`) and Pink (`#EC4899`) are reserved for active states, brand marks, and primary actions.
-- **Borders**: Avoid solid colors. Use the low-opacity white (`0.06`) to create a "glass edge" effect that defines boundaries without adding visual weight.
+Inter é a fonte da interface. Courier Prime é usada em atalhos, caminhos e informações técnicas. Textos corridos usam de 14 a 18 px; labels e legendas usam de 11 a 13 px.
 
-## Typography
-The system uses **Inter** for all interface elements to maintain a clean, systematic look. **Courier Prime** (as a proxy for Cascadia Mono) is used exclusively for technical readouts, keyboard shortcuts, and code-like metadata.
+## Layout
 
-- **Scale**: The hierarchy is tight, ranging from 11px to 36px.
-- **Readability**: Large body text (16px/18px) should be used for transcriptions. Labels and utility text use the 11px-13px range to maximize screen real estate.
-- **Monospace**: Apply to keycaps and file paths only.
+- Janelas usam margem externa de 12 px e espaçamento interno de 16 px.
+- A barra lateral tem 240 px.
+- O overlay mede 360 por 64 px e fica centralizado acima da barra de tarefas.
+- Cards e janelas usam raio de 14 px. Botões e campos usam raio de 8 px.
 
-## Layout & Spacing
-This design system utilizes a **Fixed Grid** approach for its primary desktop windows, supplemented by a **Fluid Overlay** model for the floating recording bar.
+## Componentes
 
-- **Windows**: Use 16px gutters for internal card layouts. Standard sidebars are fixed at 240px width.
-- **Margins**: A consistent 12px margin should exist between the window edge and the internal content containers.
-- **The Floating Bar**: A specialized layout fixed at 360x64px, anchored to the bottom-center of the screen with a 32px offset from the taskbar.
-
-## Elevation & Depth
-Depth is created through **Backdrop Blurs** and **Tonal Layering** rather than traditional drop shadows.
-
-- **Surface Layering**: The background (`#0B0D11`) is the lowest level. Cards and surfaces (`#14171D`) sit above it, defined by their `0.06` white border.
-- **The Glow**: High-priority elements (like the active recording state) should emit a soft, 20px Gaussian blur glow using the Indigo/Pink gradient colors at 15% opacity.
-- **Glassmorphism**: Floating overlays must use a 92% background opacity with a 12px backdrop blur to ensure legibility against varying desktop wallpapers.
-
-## Shapes
-The shape language is sophisticated and soft.
-- **Main Containers**: Use a 14px radius for all windows and primary dashboard cards.
-- **Interactive Elements**: Buttons and inputs follow the standard 8px (Level 2) roundedness.
-- **Specific Geometry**: The brand mark uses a distinct 22% super-ellipse (squircle). Chips, status indicators, and the floating overlay use a full pill radius for a modern, friendly feel.
-
-## Components
-
-### Brand Mark
-A stylized waveform consisting of 5 vertical bars of varying heights. Apply the Indigo-to-Pink gradient across the bars. The background is a `#14171D` squircle with 22% roundedness.
-
-### Keycap
-Technical shortcuts are displayed as "Keycaps." Use 12px Monospace text inside a small rectangle with a 1px white border (10% alpha). The background is slightly lighter than the surface.
-
-### Mode Chip
-Used for transcription modes (e.g., "Dictation", "Coding"). 10px bold uppercase text. Background is 33% opacity of the assigned mode color (e.g., Emerald for 'Ready').
-
-### Status Pill
-- **Ready**: An 8px Emerald dot next to "Ready" text in a pill container.
-- **Recording**: An 8px Gradient (Indigo/Pink) dot that pulses gently, indicating active voice capture.
-
-### Floating Overlay
-A 360x64px pill. This is the primary interaction point during recording. It uses the 92% alpha background with a 12px blur and a subtle 1px border.
-
-### Custom Checkbox
-18x18px with 5px rounded corners. In the unchecked state, it has a subtle border. When checked, the entire box is filled with the Indigo-to-Pink gradient, with a white checkmark icon.
-
-### Buttons
-Primary buttons use the Indigo-to-Pink gradient with white text. Secondary buttons are "ghost" style with a 1px border and no fill.
+- A marca é uma forma de onda com cinco barras e gradiente índigo para rosa.
+- Atalhos aparecem em caixas de texto monoespaçado com borda discreta.
+- Chips de modo usam o nome em caixa alta e a cor associada ao modo.
+- O estado pronto usa um ponto verde. Durante a gravação, o ponto recebe o gradiente da marca.
+- O overlay usa fundo com 92% de opacidade, borda clara de baixa opacidade e desfoque quando disponível no Windows.
+- Botões primários usam o gradiente da marca. Botões secundários usam fundo transparente e borda discreta.

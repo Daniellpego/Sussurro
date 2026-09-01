@@ -1,39 +1,81 @@
-name: Bug report
-description: Relate um erro reproduzível do Sussurro
+name: Relatar um erro
+description: Informe um problema reproduzível no Sussurro
 title: "[Bug] "
-labels: [bug]
+labels:
+  - bug
 body:
   - type: markdown
     attributes:
-      value: "Não anexe transcrições, logs ou arquivos de %APPDATA% com dados pessoais sem anonimizar."
+      value: Antes de enviar, remova dos logs qualquer transcrição, nome, caminho de usuário ou outro dado pessoal.
+
   - type: input
     id: version
     attributes:
-      label: Commit ou versão
+      label: Versão do Sussurro
+      description: Consulte a tela Sobre ou informe o commit usado.
+      placeholder: v0.1.1
     validations:
       required: true
+
+  - type: dropdown
+    id: variant
+    attributes:
+      label: Variante
+      options:
+        - CPU
+        - CUDA
+        - Código-fonte
+    validations:
+      required: true
+
   - type: input
     id: windows
     attributes:
-      label: Windows
-      placeholder: "Windows 11 24H2"
+      label: Versão do Windows
+      placeholder: Windows 11 24H2
     validations:
       required: true
+
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU
+      description: Obrigatório para a variante CUDA.
+      placeholder: NVIDIA GeForce RTX 3060, driver 560.94
+
   - type: textarea
     id: reproduce
     attributes:
-      label: Passos para reproduzir
+      label: Como reproduzir
+      description: Liste os passos mínimos, começando com o aplicativo fechado.
     validations:
       required: true
+
   - type: textarea
     id: expected
     attributes:
-      label: Resultado esperado
+      label: O que deveria acontecer
     validations:
       required: true
+
   - type: textarea
     id: actual
     attributes:
-      label: Resultado observado
+      label: O que aconteceu
     validations:
       required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log relevante
+      description: Cole somente o trecho próximo ao erro e remova dados pessoais.
+      render: shell
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacidade
+      options:
+        - label: Removi transcrições e dados pessoais das informações acima.
+          required: true
