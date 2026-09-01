@@ -20,23 +20,23 @@ import numpy as np
 import sounddevice as sd
 import soundfile as sf
 
-
-# Coloca as DLLs do cuBLAS/cuDNN (instaladas via pip nvidia-*-cu12) no PATH
-# do processo. Sem isso o CTranslate2 não acha as libs no Windows.
-def _load_cuda_dlls() -> None:
-    import importlib.util
-
-    for pkg in ("nvidia.cublas", "nvidia.cudnn"):
-        spec = importlib.util.find_spec(pkg)
-        if spec is None or spec.submodule_search_locations is None:
-            continue
-        for loc in spec.submodule_search_locations:
-            bin_dir = Path(loc) / "bin"
-            if bin_dir.is_dir():
-                os.add_dll_directory(str(bin_dir))
+# Com stdout redirecionado (CI, runtime) o Windows cai pra cp1252, que não
+# cobre a seta "→" dos timestamps e derruba o print no fim da transcrição.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 
-_load_cuda_dlls()
+# Usa o loader de DLLs CUDA da própria lib em vez de uma cópia local: ele
+# cobre add_dll_directory *e* PATH (necessário pro LoadLibraryW legacy),
+# inclui cuda_nvrtc e funciona em bundle PyInstaller. Sem isso o CTranslate2
+# não acha cublas64_12.dll no Windows.
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+import sussurro.cuda_setup  # noqa: E402  (precisa de ROOT no sys.path)
+
+sussurro.cuda_setup.setup_cuda_dll_path()
 
 from faster_whisper import WhisperModel  # noqa: E402  (after DLL setup)
 
