@@ -14,6 +14,7 @@ from __future__ import annotations
 import gc
 import logging
 import queue
+import threading
 import time
 from dataclasses import dataclass, field
 
@@ -30,6 +31,13 @@ class TranscriptionJob:
     initial_prompt: str | None = None
     hotwords: str | None = None
     request_id: int = 0
+
+
+@dataclass
+class PartialTranscriptionJob:
+    audio: np.ndarray
+    request_id: int
+    initial_prompt: str | None = None
 
 
 @dataclass
@@ -60,6 +68,7 @@ def resolve_preset(preset: str) -> dict:
 
 
 _UNLOAD = object()
+_WARMUP = object()
 
 
 def _resolve_language(lang: str | None) -> str | None:
@@ -72,6 +81,7 @@ class WhisperWorker(QThread):
     ready = Signal()
     started_transcription = Signal(int)
     done = Signal(object)
+    partial = Signal(int, str)
     failed = Signal(int, str)
     reloading = Signal()
     recovered = Signal()
@@ -98,6 +108,8 @@ class WhisperWorker(QThread):
         self._stop = False
         self._active_device = device
         self._active_compute = compute_type
+        self._partial_lock = threading.Lock()
+        self._partial_pending = False
 
     def set_language(self, language: str | None) -> None:
         self._language = _resolve_language(language)
@@ -119,12 +131,25 @@ class WhisperWorker(QThread):
     def submit(self, job: TranscriptionJob) -> None:
         self._queue.put(job)
 
+    def submit_partial(self, job: PartialTranscriptionJob) -> bool:
+        """Enfileira no máximo uma hipótese parcial por vez."""
+        with self._partial_lock:
+            if self._partial_pending:
+                return False
+            self._partial_pending = True
+        self._queue.put(job)
+        return True
+
     def shutdown(self) -> None:
         self._stop = True
         self._queue.put(None)
 
     def request_unload(self) -> None:
         self._queue.put(_UNLOAD)
+
+    def request_warmup(self) -> None:
+        """Carrega e aquece o modelo quando a thread já existe."""
+        self._queue.put(_WARMUP)
 
     @property
     def active_device(self) -> str:
@@ -143,10 +168,23 @@ class WhisperWorker(QThread):
             if job is _UNLOAD:
                 self._unload()
                 continue
+            if job is _WARMUP:
+                if self._model is None and self._load_model():
+                    self.ready.emit()
+                elif self._model is not None:
+                    self.ready.emit()
+                continue
             try:
-                self._handle(job)
+                if isinstance(job, PartialTranscriptionJob):
+                    self._handle_partial(job)
+                else:
+                    self._handle(job)
             except Exception as exc:  # noqa: BLE001
                 self.failed.emit(job.request_id, repr(exc))
+            finally:
+                if isinstance(job, PartialTranscriptionJob):
+                    with self._partial_lock:
+                        self._partial_pending = False
 
     def _load_attempts(self) -> list[tuple[str, str, str]]:
         """(device, compute_type, note) em ordem de preferência."""
@@ -295,3 +333,25 @@ class WhisperWorker(QThread):
             segments=[(s.start, s.end, s.text.strip()) for s in segs],
             device=self._active_device,
         ))
+
+    def _handle_partial(self, job: PartialTranscriptionJob) -> None:
+        """Gera uma hipótese barata para o HUD, sem tocar no campo ativo."""
+        if self._model is None or job.audio.size < 16_000:
+            return
+        audio = job.audio[-16_000 * 12:]
+        kwargs: dict = {
+            "language": self._language,
+            "task": "transcribe",
+            "beam_size": 1,
+            "best_of": 1,
+            "without_timestamps": True,
+            "vad_filter": True,
+            "condition_on_previous_text": False,
+            "temperature": 0.0,
+        }
+        if job.initial_prompt:
+            kwargs["initial_prompt"] = job.initial_prompt
+        segments, _ = self._model.transcribe(audio, **kwargs)
+        text = "".join(segment.text for segment in segments).strip()
+        if text:
+            self.partial.emit(job.request_id, text)

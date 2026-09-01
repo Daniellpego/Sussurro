@@ -551,6 +551,26 @@ class Overlay(QWidget):
         if not self.isVisible():
             self._show_pill()
 
+    def show_partial(self, text: str, mode: str | None = None) -> None:
+        """Mostra uma hipótese ao vivo apenas no HUD."""
+        if self._state not in {"recording", "partial"}:
+            return
+        self._state = "partial"
+        clean = " ".join(text.split())
+        if len(clean) > 72:
+            clean = "…" + clean[-71:]
+        self._txt(self._msg, clean, theme.palette().text_primary)
+        items: list = [self._ring]
+        if mode and mode != "raw":
+            self._chip.set_mode(mode)
+            items.append(self._chip)
+        items.extend([self._msg, self._timer_lbl])
+        self._apply_now(
+            items, pad_h=14, gap=10, tint="record",
+            height=theme.HUD_HEIGHT_HERO, radius=theme.HUD_RADIUS_HERO,
+            pad_l=14, pad_r=16,
+        )
+
     def show_transcribing(self, mode: str | None = None) -> None:
         self._state = "transcribing"
         self._stop_anims()

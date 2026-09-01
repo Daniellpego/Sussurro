@@ -12,6 +12,7 @@ from __future__ import annotations
 import logging
 import signal
 import sys
+import threading
 import time
 
 from PySide6.QtCore import QObject, Qt, QTimer, Signal, Slot
@@ -19,6 +20,7 @@ from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon
 
 from sussurro.asr.whisper import (
+    PartialTranscriptionJob,
     TranscriptionJob,
     TranscriptionResult,
     WhisperWorker,
@@ -30,6 +32,7 @@ from sussurro.inject.paste import PasteResult, paste_text
 from sussurro.llm import modes as modes_mod
 from sussurro.llm.modes import ModeStore
 from sussurro.llm.worker import LLMJob, LLMResult, LLMWorker
+from sussurro.performance import LatencyStore, LatencyTrace
 from sussurro.storage.config import Config
 from sussurro.storage.dictionary import Dictionary
 from sussurro.storage.history import History, HistoryEntry
@@ -45,6 +48,7 @@ log = logging.getLogger("sussurro")
 class App(QObject):
     # colagem roda em thread de fundo; sinal traz PasteResult pra UI
     _pasted = Signal(object, bool, str, object)  # asr, used_llm, reason, PasteResult
+    _audio_prepared = Signal(bool, str)
 
     def __init__(self, qt_app: QApplication) -> None:
         super().__init__()
@@ -61,9 +65,17 @@ class App(QObject):
         self._paused = not self._cfg.start_armed
         self._hotkeys_started = False
         self._asr_note = ""  # aviso de fallback CPU etc.
+        self._asr_ready = False
+        self._audio_ready = False
+        self._active_request_id = 0
+        self._traces: dict[int, LatencyTrace] = {}
+        self._latency_store = LatencyStore()
 
         # backend
-        self._recorder = Recorder(device=self._cfg.mic_device or None)
+        self._recorder = Recorder(
+            device=self._cfg.mic_device or None,
+            on_first_frame=self._on_audio_first_frame,
+        )
         self._overlay = Overlay(level_source=lambda: self._recorder.level)
         self._hotkey = PushToTalkListener()
         self._mouse_hotkey = MouseButtonListener(self._cfg.mouse_button)
@@ -101,6 +113,9 @@ class App(QObject):
         self._llm_idle_timer.setSingleShot(True)
         self._llm_idle_timer.setInterval(2 * 60 * 1000)  # 2 min
         self._llm_idle_timer.timeout.connect(self._on_llm_idle)
+        self._partial_timer = QTimer(self)
+        self._partial_timer.setInterval(1800)
+        self._partial_timer.timeout.connect(self._request_partial)
 
         # UI (compartilha o ModeStore com o LLM worker)
         self._window = MainWindow(self._cfg, self._history,
@@ -143,11 +158,13 @@ class App(QObject):
         self._worker.ready.connect(self._on_worker_ready)
         self._worker.started_transcription.connect(self._on_started_inf)
         self._worker.done.connect(self._on_asr_done)
+        self._worker.partial.connect(self._on_partial)
         self._worker.failed.connect(self._on_failed)
         self._worker.reloading.connect(self._on_reloading)
         self._worker.recovered.connect(self._on_worker_recovered)
         self._worker.device_ready.connect(self._on_device_ready)
         self._pasted.connect(self._on_pasted)
+        self._audio_prepared.connect(self._on_audio_prepared)
 
         # LLM worker -> app
         self._llm_worker.started_processing.connect(self._on_llm_started)
@@ -226,13 +243,15 @@ class App(QObject):
                          name="ollama-autostart").start()
 
     def _ensure_asr_started(self) -> None:
-        """Garante que o WhisperWorker está rodando (lazy se preload_asr=False)."""
+        """Garante que o modelo esteja carregado e aquecido."""
         if not self._worker.isRunning():
-            log.info("ASR lazy-start (primeiro uso)")
+            log.info("iniciando ASR em background")
             self._set_status("loading", "carregando modelo...")
             if self._cfg.show_overlay:
                 self._overlay.show_loading_model()
             self._worker.start()
+        elif not self._asr_ready:
+            self._worker.request_warmup()
 
     def _center_over_main(self, win, w: int, h: int) -> None:
         wp = self._window.geometry()
@@ -251,7 +270,10 @@ class App(QObject):
         if mic:
             self._cfg.mic_device = mic
             self._cfg.save()
-            self._recorder = Recorder(device=mic)
+            self._recorder.close()
+            self._recorder = Recorder(
+                device=mic, on_first_frame=self._on_audio_first_frame
+            )
         log.info("onboarding concluido — mic=%s", mic or "default")
         self._show_setup()
 
@@ -299,6 +321,8 @@ class App(QObject):
         self._llm_worker.wait(2000)
         if self._recorder.is_recording:
             self._recorder.stop()
+        self._recorder.close()
+        self._latency_store.close()
         # solta Qwen da VRAM ao sair (não mata ollama.exe — só descarrega pesos)
         if self._cfg.ollama_unload_on_quit:
             import threading
@@ -392,6 +416,28 @@ class App(QObject):
         self._hotkey.start()
         self._mouse_hotkey.start()
 
+    def _maybe_start_hotkeys(self) -> None:
+        if self._audio_ready and self._asr_ready and not self._paused:
+            self._start_hotkeys()
+
+    def _prepare_audio(self) -> None:
+        try:
+            self._recorder.prepare()
+        except Exception as exc:  # noqa: BLE001
+            self._audio_prepared.emit(False, repr(exc))
+        else:
+            self._audio_prepared.emit(True, "")
+
+    @Slot(bool, str)
+    def _on_audio_prepared(self, ready: bool, error: str) -> None:
+        self._audio_ready = ready
+        if not ready:
+            log.error("falha ao preparar microfone: %s", error)
+            self._set_status("error", "microfone indisponível")
+            return
+        log.info("microfone preparado; stream recebendo frames")
+        self._maybe_start_hotkeys()
+
     @Slot(str, str)
     def _on_device_ready(self, device: str, note: str) -> None:
         self._asr_note = note or ""
@@ -402,8 +448,9 @@ class App(QObject):
 
     @Slot()
     def _on_worker_ready(self) -> None:
-        log.info("modelo carregado, ativando hotkey")
-        self._start_hotkeys()
+        log.info("modelo carregado e aquecido")
+        self._asr_ready = True
+        self._maybe_start_hotkeys()
         self._restart_idle()
         if self._asr_note:
             status = f"pronto · {self._asr_note}"
@@ -432,19 +479,24 @@ class App(QObject):
                 return m
         return self._mode
 
-    @Slot()
-    def _on_pressed(self) -> None:
+    @Slot(float)
+    def _on_pressed(self, hotkey_at: float) -> None:
         if self._paused:
             return
         if self._recorder.is_recording:
             return
-        # ASR lazy: se preload_asr=False, sobe o Whisper no 1º PTT
-        self._ensure_asr_started()
+        self._request_seq += 1
+        self._active_request_id = self._request_seq
+        trace = LatencyTrace(self._active_request_id)
+        trace.mark("hotkey_down", hotkey_at)
+        self._traces[self._active_request_id] = trace
         # modo automatico por app em foco (consciencia de contexto)
         self._active_mode = self._resolve_mode()
+        trace.metadata.update({"model": self._cfg.model_size, "mode": self._active_mode})
         log.info("PTT pressed: gravando (modo=%s)", self._active_mode)
         try:
-            self._recorder.start()
+            ready_at = self._recorder.start()
+            trace.mark("audio_capture_ready", ready_at)
         except Exception:  # noqa: BLE001 - mic indisponivel/removido/ocupado
             log.exception("falha ao abrir o microfone")
             if self._cfg.show_overlay:
@@ -456,20 +508,26 @@ class App(QObject):
         from sussurro import sound
         sound.play("start", self._cfg.play_sound)
         self._set_status("recording", "ouvindo...")
+        self._partial_timer.start()
 
-    @Slot()
-    def _on_released(self) -> None:
+    @Slot(float)
+    def _on_released(self, hotkey_at: float) -> None:
         if not self._recorder.is_recording:
             return
         log.info("PTT released: transcrevendo")
+        self._partial_timer.stop()
+        trace = self._traces.get(self._active_request_id)
+        if trace:
+            trace.mark("hotkey_up", hotkey_at)
         audio = self._recorder.stop()
+        if trace:
+            trace.mark("audio_finalized")
         if self._cfg.show_overlay:
             self._overlay.show_transcribing(self._active_mode)
-        self._request_seq += 1
         self._worker.submit(TranscriptionJob(
             audio=audio,
             mode=self._active_mode,
-            request_id=self._request_seq,
+            request_id=self._active_request_id,
             # estilo PT-BR + termos; hotwords = bias nativo do CTranslate2
             initial_prompt=self._dictionary.to_prompt(),
             hotwords=self._dictionary.to_hotwords(),
@@ -484,6 +542,8 @@ class App(QObject):
             return
         log.info("PTT cancelled: terceira tecla detectada (system shortcut)")
         self._recorder.stop()  # descarta o buffer
+        self._partial_timer.stop()
+        self._traces.pop(self._active_request_id, None)
         if self._cfg.show_overlay:
             self._overlay.show_cancelled()
         self._set_status("ready", f"pronto · {self._cfg.trigger_label}")
@@ -492,8 +552,37 @@ class App(QObject):
     def _on_started_inf(self, request_id: int) -> None:
         log.debug("inferencia iniciada (req %d)", request_id)
 
+    def _on_audio_first_frame(self, at: float) -> None:
+        trace = self._traces.get(self._active_request_id)
+        if trace:
+            trace.mark("first_frame_received", at)
+
+    @Slot()
+    def _request_partial(self) -> None:
+        if not self._recorder.is_recording:
+            return
+        audio = self._recorder.snapshot()
+        self._worker.submit_partial(PartialTranscriptionJob(
+            audio=audio,
+            request_id=self._active_request_id,
+            initial_prompt=self._dictionary.to_prompt(),
+        ))
+
+    @Slot(int, str)
+    def _on_partial(self, request_id: int, text: str) -> None:
+        if request_id != self._active_request_id or not self._recorder.is_recording:
+            return
+        trace = self._traces.get(request_id)
+        if trace:
+            trace.mark("first_partial")
+        if self._cfg.show_overlay:
+            self._overlay.show_partial(text, self._active_mode)
+
     @Slot(object)
     def _on_asr_done(self, result: TranscriptionResult) -> None:
+        trace = self._traces.get(result.request_id)
+        if trace:
+            trace.mark("transcript_final")
         text = result.text.strip()
         log.info("asr done: %.2fs audio -> %.2fs infer | %r",
                  result.duration_audio, result.duration_infer, text[:80])
@@ -523,6 +612,7 @@ class App(QObject):
                 self._overlay.show_done(ok=False)  # pílula âmbar "Não captei nada"
             self._set_status("ready",
                                      f"silêncio · {self._cfg.trigger_label}")
+            self._complete_trace(result.request_id)
             return
 
         # Modo raw: cola direto. Modos com LLM: worker depois.
@@ -565,6 +655,9 @@ class App(QObject):
 
     @Slot(int)
     def _on_llm_started(self, request_id: int) -> None:
+        trace = self._traces.get(request_id)
+        if trace:
+            trace.mark("llm_start")
         pending = self._pending_raw.get(request_id)
         mode_id = pending.mode if pending else self._active_mode
         if self._cfg.show_overlay:
@@ -574,6 +667,9 @@ class App(QObject):
 
     @Slot(object)
     def _on_llm_done(self, result: LLMResult) -> None:
+        trace = self._traces.get(result.request_id)
+        if trace:
+            trace.mark("llm_final")
         log.info("llm done (req %d, mode=%s, used_llm=%s, reason=%s, %.0fms): %r",
                  result.request_id, result.mode, result.used_llm,
                  result.reason, result.duration_ms, result.processed_text[:80])
@@ -601,6 +697,9 @@ class App(QObject):
                   used_llm: bool,
                   reason: str = "") -> None:
         """Salva no historico + cola no app + atualiza overlay/status."""
+        trace = self._traces.get(asr_result.request_id)
+        if trace:
+            trace.mark("text_final")
         self._modes.increment_usage(asr_result.mode)
         self._history.append(HistoryEntry(
             timestamp=time.time(),
@@ -633,10 +732,14 @@ class App(QObject):
             return
 
         self._finish_ui(asr_result, used_llm, reason)
+        self._complete_trace(asr_result.request_id)
 
     def _paste_bg(self, asr_result: TranscriptionResult, text: str,
                   used_llm: bool, reason: str) -> None:
         """Roda em thread de fundo; resultado volta pra UI via sinal."""
+        trace = self._traces.get(asr_result.request_id)
+        if trace:
+            trace.mark("paste_start")
         try:
             result = paste_text(
                 text,
@@ -652,6 +755,10 @@ class App(QObject):
     def _on_pasted(self, asr_result: TranscriptionResult,
                    used_llm: bool, reason: str,
                    paste: object) -> None:
+        trace = self._traces.get(asr_result.request_id)
+        if trace:
+            trace.mark("paste_final")
+        self._complete_trace(asr_result.request_id)
         pr = paste if isinstance(paste, PasteResult) else PasteResult(
             ok=bool(paste), message="" if paste else "falha ao colar")
         if not pr.ok:
@@ -665,6 +772,13 @@ class App(QObject):
             self._tray.notify("Não consegui colar", msg)
             return
         self._finish_ui(asr_result, used_llm, reason)
+
+    def _complete_trace(self, request_id: int) -> None:
+        trace = self._traces.pop(request_id, None)
+        if trace:
+            trace.metadata.setdefault("model", self._cfg.model_size)
+            trace.metadata.setdefault("device", self._worker.active_device)
+            self._latency_store.submit(trace)
 
     def _finish_ui(self, asr_result: TranscriptionResult,
                    used_llm: bool, reason: str) -> None:
@@ -798,6 +912,9 @@ class App(QObject):
                 self._recorder.stop()
             except Exception:  # noqa: BLE001
                 pass
+        self._partial_timer.stop()
+        self._recorder.close()
+        self._audio_ready = False
         self._idle_timer.stop()
         self._llm_idle_timer.stop()
         # Whisper: pede unload se a thread existe
@@ -812,31 +929,25 @@ class App(QObject):
             )
 
     def _arm_engine(self, notify: bool = True) -> None:
-        """Modo ativo: hotkeys ligados; modelo sob demanda ou preload."""
+        """Prepara microfone e modelo antes de aceitar o atalho."""
         # SEMPRE limpa o flag — senão o hotkey ignora o PTT mesmo "armado"
         self._paused = False
         self._tray.set_paused(False)
-        log.info("armed — pronto pra ditar (preload=%s)", self._cfg.preload_asr)
-        self._start_hotkeys()
-        if self._cfg.preload_asr:
-            self._ensure_asr_started()
-            self._set_status("loading", "carregando modelo...")
-        else:
-            # sem preload: zero VRAM até a 1ª fala
-            self._set_status("ready", f"ativo · {self._cfg.trigger_label}")
+        log.info("armed: preparando microfone e modelo")
+        self._audio_ready = self._recorder.is_ready
+        self._asr_ready = False
+        self._ensure_asr_started()
+        if not self._audio_ready:
+            threading.Thread(
+                target=self._prepare_audio, daemon=True, name="audio-prepare"
+            ).start()
+        self._set_status("loading", "preparando ditado...")
         self._restart_idle()
         if notify:
-            if self._cfg.preload_asr:
-                self._tray.notify(
-                    "Sussurro ativo",
-                    "Carregando o modelo… depois é só segurar o atalho.",
-                )
-            else:
-                self._tray.notify(
-                    "Sussurro ativo",
-                    f"Segure {self._cfg.trigger_label} pra falar "
-                    "(1ª vez carrega o modelo).",
-                )
+            self._tray.notify(
+                "Sussurro ativo",
+                "Preparando microfone e modelo para o primeiro ditado.",
+            )
 
     @Slot()
     def _on_config_changed(self) -> None:
@@ -855,7 +966,15 @@ class App(QObject):
         # a cada toggle de checkbox que nao tem nada a ver com audio)
         new_mic = self._cfg.mic_device or None
         if new_mic != getattr(self._recorder, "_device", None):
-            self._recorder = Recorder(device=new_mic)
+            self._recorder.close()
+            self._recorder = Recorder(
+                device=new_mic, on_first_frame=self._on_audio_first_frame
+            )
+            self._audio_ready = False
+            if not self._paused:
+                threading.Thread(
+                    target=self._prepare_audio, daemon=True, name="audio-prepare"
+                ).start()
         # aplica troca do botao do mouse em runtime (sem restart)
         self._mouse_hotkey.set_button(self._cfg.mouse_button)
         self._overlay.set_mode(self._mode)

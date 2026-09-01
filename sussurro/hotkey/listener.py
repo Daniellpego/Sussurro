@@ -15,13 +15,15 @@ thread-safe pra UI thread.
 """
 from __future__ import annotations
 
+import time
+
 from pynput import keyboard
 from PySide6.QtCore import QObject, Signal
 
 
 class PushToTalkListener(QObject):
-    pressed = Signal()
-    released = Signal()
+    pressed = Signal(float)
+    released = Signal(float)
     cancelled = Signal()   # tecla extra digitada -> system shortcut
 
     CTRL_KEYS = {keyboard.Key.ctrl, keyboard.Key.ctrl_l, keyboard.Key.ctrl_r}
@@ -69,7 +71,7 @@ class PushToTalkListener(QObject):
 
         if not prev_both and self._both_held() and not self._active:
             self._active = True
-            self.pressed.emit()
+            self.pressed.emit(time.perf_counter())
 
     def _on_release(self, key) -> None:
         was_active = self._active
@@ -82,7 +84,7 @@ class PushToTalkListener(QObject):
 
         if was_active and not self._both_held():
             self._active = False
-            self.released.emit()
+            self.released.emit(time.perf_counter())
 
     def _both_held(self) -> bool:
         return self._ctrl and self._win

@@ -14,6 +14,7 @@ thread-safe pra UI thread. Pode ser reconfigurado em runtime via
 from __future__ import annotations
 
 import logging
+import time
 
 from pynput import mouse
 from PySide6.QtCore import QObject, Signal
@@ -42,8 +43,8 @@ BUTTON_LABELS = {
 
 
 class MouseButtonListener(QObject):
-    pressed = Signal()
-    released = Signal()
+    pressed = Signal(float)
+    released = Signal(float)
 
     def __init__(self, button: str = "none") -> None:
         super().__init__()
@@ -89,11 +90,11 @@ class MouseButtonListener(QObject):
         if is_pressed:
             if not self._active:
                 self._active = True
-                self.pressed.emit()
+                self.pressed.emit(time.perf_counter())
         else:
             if self._active:
                 self._active = False
-                self.released.emit()
+                self.released.emit(time.perf_counter())
 
     def _button_name(self) -> str:
         for name, btn in self._map.items():
