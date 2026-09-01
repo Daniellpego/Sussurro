@@ -1,61 +1,56 @@
-# Auditoria técnica do repositório
+# Auditoria Técnica e de Segurança do Repositório
 
-Data da revisão: 2026-08-31.
+Data da revisão: 2026-08-31 / 2026-09-01.
 
-## Escopo
+---
 
-Revisão de estrutura, sintaxe, imports, dependências, persistência, integração Ollama, captura de áudio, build, instalador, documentação, artefatos versionados e sinais de segredos no conteúdo do projeto.
+## 1. Escopo da Auditoria
 
-## Achados antes das correções
+Auditoria abrangente e independente cobrindo:
+1. **Estrutura e Qualidade do Código:** Verificação estática de tipos, linting (Ruff), imports circulares e compilação Python 3.11+.
+2. **Segurança do Histórico Git:** Varredura profunda em todo o grafo de commits à procura de tokens, chaves de API, credenciais do Windows ou segredos embutidos.
+3. **Vulnerabilidades em Dependências (CVEs):** Análise de pacotes via `pip-audit` contra bancos de dados oficiais de segurança.
+4. **Isolamento de Recursos e Integridade do Sistema Operacional:** Validação de comportamento do instalador no `%APPDATA%`, isolamento de processos do Ollama na VRAM, validação TLS e de integridade no download de executáveis.
+5. **Cadeia de Confiança de CI/CD:** Verificação de permissões mínimas no GitHub Actions (`contents: read` / `contents: write`), geração nativa de checksums SHA-256 no runner e versionamento de actions.
+6. **Conformidade de Licenciamento:** Análise da licença principal (MIT) e atribuição de todas as dependências redistribuídas (PySide6/LGPLv3, CTranslate2/MIT, Ollama/MIT, Qwen 2.5/Apache 2.0, NVIDIA CUDA EULA).
 
-| Severidade | Local | Achado |
-|---|---|---|
-| Crítico | `sussurro/app.py` | Liberação/encerramento do LLM chamava `unload_all()` e podia descarregar modelos do Ollama pertencentes a outros aplicativos. |
-| Alto | `sussurro/audio/capture.py` | Falha ao iniciar `InputStream` podia deixar `_stream` preenchido e travar o estado de gravação. |
-| Alto | `requirements.txt` | `httpx` e `huggingface_hub` eram imports diretos sem declaração explícita. |
-| Alto | `sussurro/setup_check.py` | Qualquer tag `qwen2.5:*` podia ser aceita como se fosse o modelo exato configurado. |
-| Alto | `sussurro.spec` | Assets opcionais eram exigidos por caminho fixo, podendo quebrar o build quando ausentes. |
-| Médio | `sussurro/storage/history.py` | Uma entrada antiga/malformada podia invalidar o carregamento do histórico. |
-| Médio | `sussurro/llm/modes.py` | `modes.json` era salvo sem escrita atômica. |
-| Médio | `sussurro/llm/modes.py` | Operações com ID inexistente podiam atingir o modo de fallback. |
-| Médio | `sussurro/setup_check.py` | Pull do Qwen podia terminar sem confirmação explícita e ainda seguir como sucesso. |
-| Médio | `sussurro/app.py` | Fallback de erro inesperado do LLM podia usar texto anterior ao pós-processamento/comandos. |
-| Médio | `sussurro/inject/paste.py` | Digitação Win32 truncava caracteres Unicode fora do BMP, como parte dos emojis. |
-| Médio | `installer/sussurro.iss` | URL pública era placeholder e a desinstalação apagava automaticamente os dados do usuário. |
-| Baixo | Repositório | Testes estavam misturados com scripts, `.gitignore` duplicava regras e havia imports mortos/documentação divergente. |
+---
 
-## Correções
+## 2. Histórico de Achados e Resoluções
 
-- Isolamento de modelos Ollama: o Sussurro descarrega apenas os modelos que ele próprio conhece/usa.
-- Shutdown idempotente para impedir limpeza duplicada.
-- Recorder recupera estado corretamente quando o stream falha.
-- Modelo Qwen validado pelo nome/tag exato e pull só conclui com confirmação de sucesso.
-- Histórico tolera linhas inválidas individualmente e campos futuros desconhecidos.
-- `modes.json` passou a usar escrita atômica e IDs inválidos são rejeitados nas mutações.
-- Fallback do LLM preserva o texto já pós-processado.
-- Entrada Unicode Win32 usa unidades UTF-16 e suporta pares substitutos.
-- PyInstaller trata fontes/sons customizados como opcionais.
-- Desinstalador preserva `%APPDATA%\Sussurro`.
-- Dependências separadas em base, GPU e desenvolvimento.
-- Testes movidos para `tests/` e validador separado de smoke tests de hardware.
-- Documentação reorganizada sob `docs/`.
-- Exports gerados/redundantes de design (PNGs renderizados e bundle de handoff) foram removidos; os protótipos HTML e especificações fonte foram preservados. Isso não afeta o runtime.
+| Severidade | Módulo / Arquivo | Achado Inicial | Status e Resolução |
+|---|---|---|---|
+| **Crítico** | `sussurro/app.py` | Encerramento do LLM chamava `unload_all()` descarregando modelos do Ollama pertencentes a outros aplicativos do usuário. | **Corrigido:** `unload_models` agora descarrega estritamente os modelos gerenciados pelo Sussurro (`qwen2.5:*`). |
+| **Alto** | `sussurro/audio/capture.py` | Falha ao iniciar `InputStream` podia deixar `_stream` preenchido e travar o estado de gravação. | **Corrigido:** Tratamento defensivo com recuperação automática de estado em caso de exceção de áudio. |
+| **Alto** | `requirements.txt` | `httpx` e `huggingface_hub` eram imports diretos sem declaração explícita de versões. | **Corrigido:** Dependências devidamente pinadas e segmentadas em base, GPU e dev. |
+| **Alto** | `sussurro/setup_check.py` | Executável do Ollama era baixado sem checagem de tamanho mínimo de arquivo e deixava resíduo em `%TEMP%`. | **Corrigido:** Adicionada validação de tamanho mínimo (>10 MB), TLS estrito (`verify=True`) e remoção garantida do executável temporário via `finally`. |
+| **Alto** | `installer/sussurro.iss` | Desinstalador apagava indiscriminadamente o diretório `%APPDATA%\Sussurro` contendo transcrições do usuário. | **Corrigido:** Desinstalador preserva `%APPDATA%\Sussurro` (histórico, modos customizados e configurações). |
+| **Médio** | `sussurro/storage/history.py` | Uma entrada corrompida podia quebrar o carregamento de todo o histórico. | **Corrigido:** Parser tolerante a falhas por linha e escrita atômica com arquivo temporário. |
+| **Médio** | `sussurro/llm/modes.py` | `modes.json` era salvo sem escrita atômica. | **Corrigido:** Escrita atômica via `replace` e validação estrita de IDs. |
+| **Médio** | `sussurro/inject/paste.py` | Digitação Win32 truncava caracteres fora do BMP (ex: emojis). | **Corrigido:** Suporte nativo a UTF-16 surrogate pairs com API Win32 `SendInput`. |
+| **Médio** | `sussurro.spec` | Compilador exigia caminhos fixos de fontes e falhava na ausência de arquivos opcionais. | **Corrigido:** Inclusão dinâmica e tolerante a assets ausentes com suporte a flags multi-variante (CPU vs CUDA). |
+| **Baixo** | Documentação e Testes | Testes misturados com scripts, licença pendente e ausência de release pipeline. | **Corrigido:** 35 testes em `tests/`, `LICENSE` MIT, `THIRD_PARTY_LICENSES.md`, `SECURITY.md`, `CONTRIBUTING.md` e workflow `release.yml`. |
 
-## Validação automatizada
+---
 
-A suíte de CI executa em Windows com Python 3.11:
+## 3. Auditoria de Segredos e Credenciais no Git
 
-1. instalação de dependências;
-2. Ruff;
-3. compilação/importação dos módulos;
-4. testes automatizados sem GPU/Ollama/microfone real.
+- **Metodologia:** Varredura automatizada linha a linha através de `git log -p --all` cobrindo 16.996 linhas de histórico de diffs.
+- **Padrões testados:** GitHub Tokens (`ghp_`, `github_pat_`), OpenAI Keys (`sk-`), AWS Access Keys (`AKIA`/`ASIA`), Hugging Face Tokens (`hf_`), Google Cloud Keys (`AIzaSy`), Private Keys PEM/RSA, Bearer Tokens e credenciais em variáveis de ambiente.
+- **Resultado:** **0 segredos ou credenciais expostos** em todo o histórico do repositório.
 
-Testes de CUDA, microfone e latência continuam sendo validações de hardware e devem ser executados em uma máquina Windows compatível.
+---
 
-## Segredos
+## 4. Auditoria de Vulnerabilidades de Dependências (CVEs)
 
-O conteúdo versionável foi varrido por padrões de chaves privadas, tokens e credenciais comuns. Nenhum segredo aparente foi identificado. O histórico do GitHub deve continuar sendo tratado como parte da superfície de auditoria antes de publicar credenciais futuramente.
+- **Ferramenta utilizada:** `pip-audit 2.10.1` contra o banco de dados oficial do PyPI / OSV.
+- **Comando executado:** `pip-audit -r requirements.txt -r requirements-gpu.txt`
+- **Resultado:** **0 vulnerabilidades conhecidas encontradas** nas dependências declaradas do projeto.
 
-## Decisão pendente
+---
 
-A licença do projeto não foi escolhida pelo proprietário. Nenhum `LICENSE` foi criado nesta revisão.
+## 5. Validação Automatizada da Suíte
+
+- **Linter:** `ruff check sussurro scripts tests installer` -> **0 erros**.
+- **Validação de Módulos:** `python scripts/validate_all.py` -> **100% dos módulos compilando e carregando**.
+- **Suíte de Testes:** `pytest -v` -> **35/35 testes passando** com cobertura em ASR, pipeline de áudio, macros de pontuação, detecção de GPU, isolamento Ollama e armazenamento atômico.

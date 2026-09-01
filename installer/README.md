@@ -1,72 +1,76 @@
-# Construindo o SussurroSetup.exe
+# Construindo o Instalador do Sussurro (Inno Setup 6)
 
-O processo usa PyInstaller para gerar o aplicativo e Inno Setup 6 para gerar o instalador.
+O processo de build utiliza o **PyInstaller** para compilar o executável e seus módulos, e o **Inno Setup 6** para gerar o instalador final executável para Windows (`.exe`).
 
-## 1. Preparar o ambiente
+O pipeline suporta duas variantes: **CPU** (leve, compatível com qualquer PC) e **CUDA** (otimizada com bibliotecas da NVIDIA para placas RTX/GTX).
 
-Na raiz do projeto:
+---
+
+## 1. Preparar o Ambiente
+
+Na raiz do repositório:
 
 ```powershell
+# Criação do ambiente virtual
 py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
+
+# Dependências de desenvolvimento e build
 pip install -r requirements-dev.txt
 ```
 
-Se o build deve incluir o runtime CUDA via wheels Python:
-
+Para compilar a **Variante CUDA**, certifique-se de instalar também:
 ```powershell
 pip install -r requirements-gpu.txt
 ```
 
-## 2. Empacotar com PyInstaller
+---
 
+## 2. Compilação com PyInstaller
+
+### A) Compilar Variante CPU
 ```powershell
+$env:SUSSURRO_VARIANT = "cpu"
 pyinstaller --noconfirm sussurro.spec
 ```
 
-Saída:
+### B) Compilar Variante CUDA
+```powershell
+$env:SUSSURRO_VARIANT = "cuda"
+pyinstaller --noconfirm sussurro.spec
+```
 
+O bundle da aplicação será gerado em:
 ```text
 dist\Sussurro\
 ```
 
-Valide o executável antes de gerar o instalador:
+---
 
+## 3. Gerar o Instalador com Inno Setup 6
+
+Certifique-se de ter o Inno Setup 6 instalado (ex: `choco install innosetup`).
+
+### A) Gerar Instalador CPU (`SussurroSetup-CPU.exe`)
 ```powershell
-.\dist\Sussurro\Sussurro.exe
+& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DMyAppVersion="v0.1.0" /DAppVariant="CPU" installer\sussurro.iss
 ```
 
-O tamanho final depende das bibliotecas CUDA presentes no ambiente de build.
-
-## 3. Gerar o instalador
-
-Instale Inno Setup 6 e execute:
-
+### B) Gerar Instalador CUDA (`SussurroSetup-CUDA.exe`)
 ```powershell
-& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\sussurro.iss
+& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DMyAppVersion="v0.1.0" /DAppVariant="CUDA" installer\sussurro.iss
 ```
 
-Saída:
-
+Os instaladores finais serão salvos em:
 ```text
-installer\out\SussurroSetup.exe
+installer\out\SussurroSetup-CPU.exe     (~110 MB)
+installer\out\SussurroSetup-CUDA.exe    (~1.0 GB)
 ```
 
-## Comportamento do instalador
+---
 
-- Instala em `%LOCALAPPDATA%\Programs\Sussurro\` sem exigir instalação em `Program Files`.
-- Cria atalho no Menu Iniciar.
-- Permite atalho opcional na área de trabalho.
-- Permite iniciar com o Windows via HKCU.
-- **Preserva** `%APPDATA%\Sussurro` durante a desinstalação para evitar perda silenciosa de configuração, modos e histórico.
-- O primeiro uso pode baixar o modelo Whisper caso ainda não esteja no cache local.
+## 4. Comportamento e Segurança do Instalador
 
-Para reset completo, os dados em `%APPDATA%\Sussurro` devem ser removidos manualmente pelo usuário.
-
-## Build limpo
-
-```powershell
-Remove-Item -Recurse -Force build, dist, installer\out -ErrorAction SilentlyContinue
-pyinstaller --noconfirm sussurro.spec
-& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\sussurro.iss
-```
+- **Instalação Sem Privilégios Administrativos:** Instala por padrão em `%LOCALAPPDATA%\Programs\Sussurro\` sem requerer elevação de UAC.
+- **Atalhos e Inicialização:** Cria atalhos no Menu Iniciar e, opcionalmente, na Área de Trabalho e inicialização com o Windows (`HKCU`).
+- **Preservação de Dados:** A rotina de desinstalação preserva expressamente o diretório `%APPDATA%\Sussurro` (histórico de ditados, dicionário e modos customizados) para proteger o usuário contra perda acidental de dados.

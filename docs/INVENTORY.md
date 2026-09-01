@@ -1,12 +1,18 @@
-# Inventário do repositório
+# Inventário do Repositório
 
-Inventário do estado profissionalizado do Sussurro. Arquivos gerados, caches, ambientes virtuais e modelos baixados são deliberadamente excluídos.
+Inventário do estado profissionalizado e completo do **SUSURRO** (v0.1.0).
+Arquivos gerados pelo compilador, caches (`.pytest_cache`, `.ruff_cache`, `__pycache__`), diretórios de build (`build/`, `dist/`, `installer/out/`), ambientes virtuais (`.venv/`), modelos de machine learning e arquivos de áudio temporários são deliberadamente excluídos do controle de versão pelo `.gitignore`.
 
-Total listado: **105 arquivos**.
+Total de arquivos rastreados no Git: **113 arquivos**.
+
+---
+
+## Árvore de Arquivos Rastreáveis
 
 ```text
 .github/ISSUE_TEMPLATE/bug_report.yml
 .github/workflows/ci.yml
+.github/workflows/release.yml
 .gitignore
 CONTRIBUTING.md
 LICENSE
@@ -15,7 +21,9 @@ SECURITY.md
 Sussurro (dev).bat
 docs/ARCHITECTURE.md
 docs/AUDIT.md
+docs/INSTALLER_ARCHITECTURE.md
 docs/INVENTORY.md
+docs/THIRD_PARTY_LICENSES.md
 docs/design/README.md
 docs/design/design-system.md
 docs/design/screens/01-brand-mark.svg
@@ -104,21 +112,28 @@ sussurro/ui/tray_popup.py
 sussurro/ui/win_backdrop.py
 sussurro/ui/window.py
 tests/test_asr_quality.py
+tests/test_asr_turbo.py
 tests/test_audio.py
+tests/test_dictionary_macros.py
+tests/test_hardware_fallback.py
+tests/test_llm_modes_presets.py
 tests/test_llm_pipeline.py
 tests/test_ollama.py
+tests/test_postprocess_semantic.py
 tests/test_robustness.py
 tests/test_setup_check.py
+tests/test_setup_downloader.py
 tests/test_storage.py
 ```
 
-## Responsabilidade por área
+---
 
-- `sussurro/`: código executável da aplicação.
-- `tests/`: testes automatizados e regressões.
-- `scripts/`: diagnóstico, smoke tests e utilitários de captura visual.
-- `docs/`: arquitetura, auditoria, inventário, plano histórico e referências de design.
-- `installer/`: empacotamento final com Inno Setup.
-- `.github/`: CI e templates de colaboração.
-- arquivos `requirements*.txt`: perfis de dependência base, GPU e desenvolvimento.
-- `LICENSE`: licença MIT do projeto.
+## Distribuição por Camada de Responsabilidade
+
+- **Aplicação Principal (`sussurro/`):** 52 arquivos (motor ASR, áudio, UI PySide6, armazenamento, LLM, injeção de texto e assets).
+- **Testes Automatizados (`tests/`):** 13 arquivos (suíte com 35 testes unitários e de integração cobrindo áudio, ASR Turbo, fallback, macros, LLM e armazenamento).
+- **Scripts de Validação e Diagnóstico (`scripts/`):** 6 arquivos (validação CI, smoke test, detecção GPU, checagem de imports e renderizadores de tela).
+- **Documentação Técnica e Especificações (`docs/`):** 17 arquivos (arquitetura do sistema, arquitetura do instalador, auditoria de segurança, inventário, licenças de terceiros, especificações de design system e telas HTML).
+- **Instalação e Empacotamento (`installer/` & `sussurro.spec`):** 3 arquivos (script Inno Setup 6 parametrizado para CPU/CUDA, especificação PyInstaller e documentação de build).
+- **Automação e CI/CD (`.github/`):** 3 arquivos (workflows de validação de qualidade `ci.yml`, pipeline de release multi-variante `release.yml` e template de issue).
+- **Metadados e Governança na Raiz:** 19 arquivos (`pyproject.toml`, perfis de dependências `requirements*.txt`, `LICENSE` MIT, `README.md`, `SECURITY.md`, `CONTRIBUTING.md`, `.gitignore`, script `.bat` de inicialização rápida).

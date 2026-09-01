@@ -222,7 +222,7 @@ class OllamaInstallWorker(QThread):
 
         # 2. Download do OllamaSetup.exe
         try:
-            with httpx.Client(follow_redirects=True, timeout=30.0) as client:
+            with httpx.Client(follow_redirects=True, timeout=30.0, verify=True) as client:
                 with client.stream("GET", OLLAMA_INSTALLER_URL) as resp:
                     resp.raise_for_status()
                     total_bytes = int(resp.headers.get("content-length", 0))
@@ -244,12 +244,29 @@ class OllamaInstallWorker(QThread):
                                 self.status_changed.emit(f"Baixando Ollama ({downloaded_bytes / 1e6:.1f} / {total_mb:.1f} MB)…")
                                 last_emit_t = now
 
+            # Validação de integridade mínima (binário executável real > 10 MB)
+            if not installer_path.exists() or installer_path.stat().st_size < 10 * 1024 * 1024:
+                self.failed.emit("Arquivo de instalação baixado está corrompido ou incompleto.")
+                try:
+                    installer_path.unlink(missing_ok=True)
+                except OSError:
+                    pass
+                return
+
             self.progress.emit(total_mb, total_mb, 0.0)
         except Exception as exc:  # noqa: BLE001
             self.failed.emit(f"Falha no download do Ollama: {exc}")
+            try:
+                installer_path.unlink(missing_ok=True)
+            except OSError:
+                pass
             return
 
         if self._cancelled:
+            try:
+                installer_path.unlink(missing_ok=True)
+            except OSError:
+                pass
             return
 
         # 3. Execução do instalador
@@ -268,6 +285,12 @@ class OllamaInstallWorker(QThread):
         except Exception as exc:  # noqa: BLE001
             self.failed.emit(f"Falha ao executar o instalador do Ollama: {exc}")
             return
+        finally:
+            # Limpeza do arquivo temporário de instalação
+            try:
+                installer_path.unlink(missing_ok=True)
+            except OSError:
+                pass
 
         # 4. Confirmação
         if ollama_running() or ollama_installed():

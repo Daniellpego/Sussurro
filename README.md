@@ -1,167 +1,211 @@
-# Sussurro
+# SUSURRO
 
-Aplicativo desktop **local-first para Windows** que transforma voz em texto com push-to-talk. O Sussurro captura o microfone, transcreve localmente com `faster-whisper`, pode refinar o texto com um LLM local via Ollama e cola o resultado no aplicativo que estava em foco.
+<div align="center">
 
-> A inferência é local. Internet pode ser necessária no primeiro uso para baixar os modelos.
+[![CI Status](https://github.com/Daniellpego/Sussurro/actions/workflows/ci.yml/badge.svg)](https://github.com/Daniellpego/Sussurro/actions/workflows/ci.yml)
+[![Latest Release](https://img.shields.io/github/v/release/Daniellpego/Sussurro?color=blue&label=release)](https://github.com/Daniellpego/Sussurro/releases/latest)
+[![Python Version](https://img.shields.io/badge/python-3.11+-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Platform: Windows](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-0078D6.svg?logo=windows&logoColor=white)](https://www.microsoft.com/windows)
 
-## Funcionalidades
+**Ditado por voz inteligente, local-first e ultra-rápido para Windows.**  
+Pressione uma tecla de atalho global, fale com naturalidade em qualquer aplicativo e tenha seu texto transcrito, pontuado e formatado com perfeição — **100% offline e com privacidade absoluta**.
 
-- Push-to-talk global por `Ctrl+Win` ou botão do mouse.
-- Transcrição local com `faster-whisper`.
-- Fallback automático de GPU para CPU quando CUDA não está disponível.
-- Modos editáveis de escrita, incluindo modo Raw sem LLM.
-- Integração opcional com Ollama e Qwen 2.5 para refinamento local.
-- Pós-processamento determinístico e comandos de voz para quebras/pontuação.
-- Colagem automática no app em foco com múltiplas estratégias de fallback.
-- HUD flutuante sem roubar o foco da janela de destino.
-- Histórico local de transcrições.
-- Dicionário do usuário para termos, nomes e jargões.
-- Tray icon, onboarding, ajustes, temas claro/escuro e autostart opcional.
+[Instalação](#-instalação-rápida-instalador-windows) •
+[Funcionalidades](#-funcionalidades-principais) •
+[Como Usar](#-como-usar) •
+[Requisitos de Sistema](#-requisitos-de-sistema) •
+[Desenvolvimento](#-desenvolvimento-local) •
+[Arquitetura](#-arquitetura)
 
-## Stack
+</div>
 
-| Camada | Tecnologia |
-|---|---|
-| Linguagem | Python 3.11+ |
-| UI | PySide6 / Qt |
-| ASR | faster-whisper / CTranslate2 |
-| Áudio | sounddevice, soundfile, NumPy |
-| Hotkeys | pynput |
-| Clipboard/entrada | pyperclip, keyboard, Win32 SendInput |
-| LLM opcional | Ollama local via HTTPX |
-| Modelos | Hugging Face Hub / Ollama |
-| Build | PyInstaller |
-| Instalador | Inno Setup 6 |
+---
 
-## Requisitos
+## ⚡ Por que o Sussurro?
 
-- Windows 10 ou Windows 11.
-- Python 3.11 recomendado para desenvolvimento.
-- Microfone reconhecido pelo Windows.
-- GPU NVIDIA é opcional, mas recomendada para menor latência.
-- Ollama é opcional. Sem ele, o modo Raw continua disponível.
+- 🔒 **100% Local e Privado:** Nenhum áudio, histórico ou dado de voz é enviado para a nuvem. Toda a inferência roda diretamente no seu computador.
+- ⚡ **Inferência com Whisper Turbo:** Equipado com o modelo de alta velocidade `faster-whisper-large-v3-turbo` (CTranslate2), garantindo transcrições precisas em frações de segundo.
+- 🎯 **Integração com Qualquer Aplicativo:** Funciona sobre qualquer janela ativa (Word, WhatsApp Desktop, VS Code, Google Docs, Notion, navegadores, prontuários ou sistemas jurídicos) sem roubar o foco.
+- 🧠 **Refinamento com IA Local (Ollama):** Reescreva notas brutas, remova hesitações (*"hã"*, *"ééé"*), estruture em tópicos ou formate termos jurídicos e médicos com o modelo local Qwen 2.5.
+- 📦 **Instalador One-Click:** Baixe e execute o instalador padrão do Windows (`.exe`). Sem necessidade de configurar Python, Git ou variáveis de ambiente.
 
-## Instalação para desenvolvimento
+---
 
-### CPU ou ambiente sem CUDA
+## 📥 Instalação Rápida (Instalador Windows)
 
+Baixe a versão mais recente na página de **[Releases Oficiais](https://github.com/Daniellpego/Sussurro/releases/latest)**:
+
+| Variante | Tamanho | Recomendado Para | Download |
+|---|---|---|---|
+| **Sussurro CPU** | ~110 MB | Computadores e notebooks sem placa de vídeo dedicada (roda em qualquer processador moderno). | [Baixar `SussurroSetup-CPU.exe`](https://github.com/Daniellpego/Sussurro/releases/latest) |
+| **Sussurro CUDA (GPU)** | ~1.0 GB | Computadores equipados com placas de vídeo **NVIDIA GeForce / RTX** (máxima performance). | [Baixar `SussurroSetup-CUDA.exe`](https://github.com/Daniellpego/Sussurro/releases/latest) |
+
+### Verificação de Integridade (SHA-256)
+Todos os binários oficiais acompanham o arquivo `checksums-sha256.txt` gerado automaticamente pelo GitHub Actions. Para verificar no PowerShell:
 ```powershell
-py -3.11 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements.txt
+Get-FileHash SussurroSetup-CPU.exe -Algorithm SHA256
 ```
 
-### GPU NVIDIA
+---
 
+## ✨ Funcionalidades Principais
+
+### 🎙️ Reconhecimento de Fala de Alta Precisão (ASR)
+- Motor `faster-whisper` em C++ com suporte aos modelos `large-v3-turbo`, `large-v3`, `medium` e `small`.
+- Fallback automático e gracioso de hardware: se o suporte CUDA não estiver presente, o sistema migra dinamicamente para execução em CPU com quantização INT8.
+
+### ✍️ Pós-Processamento Semântico e Comandos de Voz
+- **Pontuação Automática:** Reconhece comandos falados como *"vírgula"*, *"ponto final"*, *"dois pontos"*, *"ponto de interrogação"* e *"novo parágrafo"*.
+- **Capitalização Semântica:** Ajusta maiúsculas no início de períodos e após quebras de linha de forma determinística.
+- **Dicionário Personalizado:** Adicione termos técnicos, siglas, nomes próprios ou gírias regionais.
+- **Macros de Formatação PT-BR:** Expansão e formatação automática de padrões como CPF, CNPJ e números de processos jurídicos.
+
+### 🤖 Presets de IA e Modos Editáveis (Ollama)
+Alterne rapidamente o estilo do ditado através do menu da bandeja ou da tela de Modos:
+- **Raw:** Transcrição direta e pura do Whisper, ultra-rápida (sem passar pelo LLM).
+- **Clean:** Remove repetições, vícios de linguagem e hesitações mantendo a essência do que foi falado.
+- **Formal:** Converte a fala coloquial em texto profissional, culto e bem articulado.
+- **Resumo:** Sintetiza reuniões ou gravações longas em um resumo conciso.
+- **Bullet Points:** Estrutura ideias ditadas em listas organizadas de tópicos.
+- **Traduzir (Inglês / Espanhol):** Traduz automaticamente a fala em português para o idioma de destino.
+- **Modos Personalizados:** Crie seus próprios estilos com prompts de sistema personalizados no editor integrado.
+
+### 📊 Dashboard de Histórico Integrado
+- **Busca em Tempo Real:** Localize instantaneamente qualquer ditado passado enquanto digita.
+- **Agrupamento Cronológico:** Visualização organizada por dias (*Hoje*, *Ontem*, *Data*).
+- **Cópia em 1 Clique:** Clique em qualquer card de histórico para copiar o texto com feedback visual animado (*toast*).
+- **Gestão Segura:** Exclua itens individualmente ou limpe o histórico com confirmação. Rotação FIFO automática das últimas 500 entradas.
+
+### 🪟 HUD Flutuante e Injeção Não Intrusiva
+- HUD translúcido com animações de estado (*Ouvindo*, *Transcrevendo*, *Refinando*, *Concluído*) e indicador visual de volume do microfone.
+- Injeção inteligente via Win32 API (`SendInput` + Clipboard com preservação do conteúdo anterior e suporte a emojis UTF-16).
+
+---
+
+## 🎮 Como Usar
+
+```text
+1. Segure o atalho global:
+   [ Ctrl ] + [ Win ]   (ou o botão lateral do mouse configurado)
+
+2. Fale o seu texto com naturalidade...
+
+3. Solte o atalho.
+   -> O HUD processa o áudio e cola o resultado diretamente no seu cursor!
+```
+
+### Acesso Rápido pela Bandeja do Sistema (*System Tray*)
+- **Clique Duplo:** Abre a tela de Configurações / Ajustes.
+- **Clique com Botão Direito:** Menu rápido com seleção de Modos, Histórico, Pausar/Retomar e Sair.
+
+---
+
+## 💻 Requisitos de Sistema
+
+| Componente | Requisito Mínimo (Variante CPU) | Recomendado (Variante CUDA) |
+|---|---|---|
+| **Sistema Operacional** | Windows 10 (Build 19041+) ou Windows 11 | Windows 10 ou Windows 11 (64-bit) |
+| **Processador (CPU)** | Intel Core i3 / AMD Ryzen 3 (4 núcleos) | Intel Core i5 / AMD Ryzen 5 ou superior |
+| **Memória RAM** | 8 GB RAM | 16 GB RAM |
+| **Placa de Vídeo (GPU)** | Não necessária | NVIDIA RTX série 20/30/40 com 6 GB+ VRAM |
+| **Espaço em Disco** | 3 GB livres | 8 GB livres (para modelos Whisper + Ollama) |
+| **Microfone** | Qualquer microfone USB ou integrado | Microfone com redução de ruído |
+
+---
+
+## 🛠️ Desenvolvimento Local
+
+Caso deseje compilar ou contribuir com o código-fonte:
+
+### 1. Clonar o Repositório e Criar Ambiente Virtual
 ```powershell
+git clone https://github.com/Daniellpego/Sussurro.git
+cd Sussurro
+
+# Criar ambiente virtual com Python 3.11+
 py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
+```
+
+### 2. Instalar Dependências
+```powershell
+# Dependências base + desenvolvimento + linters
 python -m pip install --upgrade pip
+pip install -r requirements-dev.txt
+
+# (Opcional) Para acelerar com GPU NVIDIA:
 pip install -r requirements-gpu.txt
 ```
 
-Para habilitar os modos com LLM:
-
-```powershell
-ollama pull qwen2.5:7b-instruct-q5_K_M
-```
-
-## Executar
-
+### 3. Executar o Aplicativo
 ```powershell
 python -m sussurro
 ```
 
-Também é possível usar `Sussurro (dev).bat` após criar o `.venv`.
-
-Por padrão, a configuração atual abre o Sussurro **ativo e pronto para ditar**. Em Ajustes, desative **“Já abrir ativo”** se preferir iniciar em espera para economizar memória.
-
-## Uso
-
-1. Segure `Ctrl+Win` ou o botão do mouse configurado.
-2. Fale.
-3. Solte o atalho.
-4. O HUD informa o estágio de processamento.
-5. O texto é colado na janela que estava em foco.
-
-O modo **Raw** usa apenas a transcrição/pós-processamento local. Modos que usam IA precisam do Ollama e do modelo configurado.
-
-> No Windows, um processo sem elevação não pode injetar entrada em uma janela executada como Administrador. Nesse caso, a colagem pode ser bloqueada por UIPI.
-
-## Validação
-
-Instale as dependências de desenvolvimento:
-
+### 4. Executar Testes e Validação de Qualidade
 ```powershell
-pip install -r requirements-dev.txt
+# Linter (Ruff)
+ruff check sussurro scripts tests installer
+
+# Validador completo de imports e compilação
+python scripts/validate_all.py
+
+# Suíte de testes unitários (pytest)
+pytest -v
 ```
 
-Execute a suíte rápida:
+---
 
-```powershell
-python scripts\validate_all.py
-```
+## 🏛️ Arquitetura
 
-Ou rode as etapas separadamente:
-
-```powershell
-ruff check sussurro scripts tests
-pytest
-python scripts\check_imports.py
-```
-
-Smoke tests que dependem de hardware/modelos:
-
-```powershell
-python scripts\verify_gpu.py
-python scripts\smoke.py
-```
-
-## Estrutura
+O projeto segue uma arquitetura em camadas orientada a eventos e isolamento de responsabilidades:
 
 ```text
 Sussurro/
-├─ sussurro/              # aplicação
-│  ├─ asr/                # Whisper e pós-processamento
-│  ├─ audio/              # captura do microfone
-│  ├─ hotkey/             # teclado/mouse global
-│  ├─ inject/             # colagem/digitação
-│  ├─ llm/                # Ollama e modos
-│  ├─ storage/            # config, histórico e dicionário
-│  ├─ ui/                 # PySide6, HUD, tray e telas
-│  └─ assets/             # imagens versionáveis
-├─ tests/                 # testes automatizados
-├─ scripts/               # diagnóstico e smoke tests
-├─ docs/                  # arquitetura, auditoria e design
-├─ installer/             # Inno Setup
-├─ .github/workflows/     # CI
-├─ requirements.txt       # runtime base/CPU
-├─ requirements-gpu.txt   # runtime + CUDA NVIDIA
-├─ requirements-dev.txt   # testes/lint/build
-└─ sussurro.spec          # PyInstaller
+├── sussurro/
+│   ├── app.py                  # Orquestrador central e ciclo de vida Qt
+│   ├── asr/                    # faster-whisper, pós-processamento determinístico e macros
+│   ├── audio/                  # Captura de microfone com sounddevice e cálculo de RMS
+│   ├── hotkey/                 # Listeners globais de teclado (Ctrl+Win) e mouse
+│   ├── inject/                 # Injeção de texto Win32 (Clipboard, Shift+Insert, SendInput)
+│   ├── llm/                    # Cliente Ollama, editor de modos e isolamento de VRAM
+│   ├── storage/                # Persistência atômica de config (TOML), histórico e dicionário
+│   ├── ui/                     # Interface PySide6, HUD flutuante, histórico, ajustes e temas
+│   └── assets/                 # Ícones e imagens do aplicativo
+├── tests/                      # 35 testes automatizados cobrindo todas as camadas
+├── scripts/                    # Utilitários de diagnóstico, smoke tests e screenshots
+├── docs/                       # Documentação técnica (Arquitetura, Auditoria, Licenças)
+├── installer/                  # Scripts Inno Setup 6 parametrizados para CPU e CUDA
+└── .github/workflows/          # CI de qualidade e pipeline de release multi-variante
 ```
 
-A arquitetura detalhada está em [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+Para uma análise detalhada da arquitetura técnica, consulte o documento [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
-## Build do instalador
+---
 
-Consulte [`installer/README.md`](installer/README.md).
+## 🔒 Segurança e Privacidade
 
-## Dados e privacidade
+- **Zero Coleta de Dados:** O Sussurro não possui rastreadores, telemetria invasiva ou conexão com servidores externos do projeto.
+- **Armazenamento Local:** Todos os dados de configuração e histórico residem exclusivamente em `%APPDATA%\Sussurro` no seu próprio disco.
+- Para diretrizes de divulgação responsável ou reporte de vulnerabilidades, consulte [`SECURITY.md`](SECURITY.md).
 
-Os dados do usuário ficam em `%APPDATA%\Sussurro`. O histórico não é enviado pelo Sussurro para um serviço remoto. O cliente de LLM fala com o Ollama em `127.0.0.1`.
+---
 
-Modelos do Whisper/Hugging Face e do Ollama podem exigir download inicial. Depois de disponíveis localmente, o fluxo de transcrição/refinamento não depende de uma API de nuvem do projeto.
+## 🤝 Como Contribuir
 
-## Segurança
+Contribuições são muito bem-vindas! Siga estas etapas:
+1. Faça um Fork do projeto.
+2. Crie uma branch para sua funcionalidade (`git checkout -b feature/minha-feature`).
+3. Certifique-se de que os testes passem (`ruff check` e `pytest`).
+4. Envie suas alterações (`git commit -m 'feat: minha nova feature'`).
+5. Abra um Pull Request.
 
-Consulte [`SECURITY.md`](SECURITY.md). Não publique tokens, dumps de `%APPDATA%`, modelos, `.env` ou logs com dados pessoais em issues.
+Consulte o guia detalhado em [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
-## Contribuição
+---
 
-Consulte [`CONTRIBUTING.md`](CONTRIBUTING.md) antes de abrir um pull request.
+## 📄 Licença e Atribuições
 
-## Licença
-
-Distribuído sob a **MIT License**. Consulte [`LICENSE`](LICENSE) para os termos completos.
+Distribuído sob a **Licença MIT**. Consulte o arquivo [`LICENSE`](LICENSE) para mais detalhes.  
+As atribuições e termos das bibliotecas de terceiros (PySide6, Faster-Whisper, Ollama, Qwen, PortAudio) estão documentadas em [`docs/THIRD_PARTY_LICENSES.md`](docs/THIRD_PARTY_LICENSES.md).
