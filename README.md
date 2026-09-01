@@ -34,15 +34,17 @@ Pressione uma tecla de atalho global, fale com naturalidade em qualquer aplicati
 
 ## 📥 Instalação Rápida (Instalador Windows)
 
-Baixe a versão mais recente na página de **[Releases Oficiais](https://github.com/Daniellpego/Sussurro/releases/latest)**:
+Baixe a versão mais recente (**v0.1.1**) na página de **[Releases Oficiais](https://github.com/Daniellpego/Sussurro/releases/latest)**:
 
-| Variante | Tamanho | Recomendado Para | Download |
+| Variante | Tamanho | Recomendado Para | Download Oficial (v0.1.1) |
 |---|---|---|---|
-| **Sussurro CPU** | ~110 MB | Computadores e notebooks sem placa de vídeo dedicada (roda em qualquer processador moderno). | [Baixar `SussurroSetup-CPU.exe`](https://github.com/Daniellpego/Sussurro/releases/latest) |
-| **Sussurro CUDA (GPU)** | ~1.0 GB | Computadores equipados com placas de vídeo **NVIDIA GeForce / RTX** (máxima performance). | [Baixar `SussurroSetup-CUDA.exe`](https://github.com/Daniellpego/Sussurro/releases/latest) |
+| **Sussurro CPU** | ~94 MB | Computadores e notebooks sem placa de vídeo dedicada (roda em qualquer processador moderno). | [Baixar `SussurroSetup-CPU.exe`](https://github.com/Daniellpego/Sussurro/releases/download/v0.1.1/SussurroSetup-CPU.exe) |
+| **Sussurro CUDA (GPU)** | ~1.05 GB | Computadores equipados com placas de vídeo **NVIDIA GeForce / RTX** (máxima performance). | [Baixar `SussurroSetup-CUDA.exe`](https://github.com/Daniellpego/Sussurro/releases/download/v0.1.1/SussurroSetup-CUDA.exe) |
+
+> Para consultar versões anteriores ou notas de lançamento de todas as versões, acesse o [Histórico de Releases](https://github.com/Daniellpego/Sussurro/releases).
 
 ### Verificação de Integridade (SHA-256)
-Todos os binários oficiais acompanham o arquivo `checksums-sha256.txt` gerado automaticamente pelo GitHub Actions. Para verificar no PowerShell:
+Todos os binários oficiais acompanham o arquivo [`checksums-sha256.txt`](https://github.com/Daniellpego/Sussurro/releases/download/v0.1.1/checksums-sha256.txt) gerado automaticamente pelo GitHub Actions. Para verificar no PowerShell:
 ```powershell
 Get-FileHash SussurroSetup-CPU.exe -Algorithm SHA256
 ```

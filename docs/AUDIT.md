@@ -60,3 +60,20 @@ Auditoria abrangente e independente cobrindo:
 - **Linter:** `ruff check sussurro scripts tests installer` -> **0 erros**.
 - **Validação de Módulos:** `python scripts/validate_all.py` -> **100% dos módulos compilando e carregando**.
 - **Suíte de Testes:** `pytest -v` -> **35/35 testes passando** com cobertura em ASR, pipeline de áudio, macros de pontuação, detecção de GPU, isolamento Ollama e armazenamento atômico.
+
+---
+
+## 6. Histórico de Releases e Rastreabilidade de Segurança
+
+- **Release `v0.1.0` (Commit `84595ee`):**
+  - Primeira release com o instalador One-Click Windows (CPU e CUDA), modelo Whisper Large-v3-Turbo e presets LLM.
+  - *Lacuna identificada na auditoria subsequente:* Os binários foram compilados antes da aplicação do hardening do downloader do Ollama (`setup_check.py`) e do pinning explícito de versões seguras de dependências.
+- **Release `v0.1.1` (Commit `6503d82`):**
+  - Tag cortada para disponibilizar instaladores compilados a partir da árvore segura.
+  - *Correções incorporadas nos instaladores:*
+    1. Hardening do download do Ollama (TLS estrito `verify=True`, checagem de tamanho mínimo >10 MB, limpeza garantida do executável temporário).
+    2. Pinning estrito de dependências corrigidas contra 11 CVEs (`ctranslate2>=4.6.0`, `onnxruntime>=1.23.0`, `pyinstaller>=6.13.0`, `pytest>=9.0.0`).
+  - *Assets oficiais publicados no GitHub Releases:*
+    - `SussurroSetup-CPU.exe` (SHA-256: `be2b4f173a72a5497e9706583e489ffe9b1dd610bca6af99c1369bbf3923f522`)
+    - `SussurroSetup-CUDA.exe` (SHA-256: `f9e702944e262ef164fa706740e40c8352b7515c92c8af6922a1e417752f267b`)
+    - `checksums-sha256.txt` (SHA-256: `77bb4d4a19b52c3f244f55f260f7fe1514b1e0f14f4ec8aa7a27706beb1af9f6`)
