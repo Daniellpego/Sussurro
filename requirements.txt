@@ -2,6 +2,8 @@
 # Instalação suficiente para CPU. Para GPU NVIDIA, veja requirements-gpu.txt.
 
 faster-whisper>=1.2.1,<2
+ctranslate2>=4.6.0
+onnxruntime>=1.23.0
 sounddevice>=0.5.6,<1
 soundfile>=0.12.1,<1
 numpy>=1.26,<2.0

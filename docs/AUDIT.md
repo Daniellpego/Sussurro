@@ -22,6 +22,7 @@ Auditoria abrangente e independente cobrindo:
 |---|---|---|---|
 | **Crítico** | `sussurro/app.py` | Encerramento do LLM chamava `unload_all()` descarregando modelos do Ollama pertencentes a outros aplicativos do usuário. | **Corrigido:** `unload_models` agora descarrega estritamente os modelos gerenciados pelo Sussurro (`qwen2.5:*`). |
 | **Alto** | `sussurro/audio/capture.py` | Falha ao iniciar `InputStream` podia deixar `_stream` preenchido e travar o estado de gravação. | **Corrigido:** Tratamento defensivo com recuperação automática de estado em caso de exceção de áudio. |
+| **Alto** | `requirements.txt` / `requirements-dev.txt` | Sub-dependências transitivas e pacotes podiam permitir versões antigas com vulnerabilidades conhecidas (ctranslate2 <4.6.0, onnxruntime <1.23.0, pyinstaller <6.13.0, pytest <9.0.0). | **Corrigido:** Fixadas explicitamente as versões mínimas seguras: `ctranslate2>=4.6.0`, `onnxruntime>=1.23.0`, `pyinstaller>=6.13.0,<7` e `pytest>=9.0.0`. |
 | **Alto** | `requirements.txt` | `httpx` e `huggingface_hub` eram imports diretos sem declaração explícita de versões. | **Corrigido:** Dependências devidamente pinadas e segmentadas em base, GPU e dev. |
 | **Alto** | `sussurro/setup_check.py` | Executável do Ollama era baixado sem checagem de tamanho mínimo de arquivo e deixava resíduo em `%TEMP%`. | **Corrigido:** Adicionada validação de tamanho mínimo (>10 MB), TLS estrito (`verify=True`) e remoção garantida do executável temporário via `finally`. |
 | **Alto** | `installer/sussurro.iss` | Desinstalador apagava indiscriminadamente o diretório `%APPDATA%\Sussurro` contendo transcrições do usuário. | **Corrigido:** Desinstalador preserva `%APPDATA%\Sussurro` (histórico, modos customizados e configurações). |
@@ -44,8 +45,13 @@ Auditoria abrangente e independente cobrindo:
 ## 4. Auditoria de Vulnerabilidades de Dependências (CVEs)
 
 - **Ferramenta utilizada:** `pip-audit 2.10.1` contra o banco de dados oficial do PyPI / OSV.
-- **Comando executado:** `pip-audit -r requirements.txt -r requirements-gpu.txt`
-- **Resultado:** **0 vulnerabilidades conhecidas encontradas** nas dependências declaradas do projeto.
+- **Comando executado:** `pip-audit -r requirements.txt -r requirements-gpu.txt -r requirements-dev.txt` e auditoria global do ambiente (`pip-audit -v`).
+- **Versões mínimas seguras fixadas:**
+  - `ctranslate2>=4.6.0` (patch de segurança para PYSEC-2026-88)
+  - `onnxruntime>=1.23.0` (patch de segurança para GHSA-4hvw-gvg5-4p73, GHSA-5254-2qvc-mrhf, etc.)
+  - `pyinstaller>=6.13.0,<7` (patch de segurança para GHSA-24ch-2w7p-2hff)
+  - `pytest>=9.0.0` (patch de segurança para PYSEC-2026-1845)
+- **Resultado:** **0 vulnerabilidades conhecidas encontradas** nas dependências declaradas e no ambiente Python.
 
 ---
 
