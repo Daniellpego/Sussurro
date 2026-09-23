@@ -27,6 +27,25 @@ Este arquivo registra as mudanças relevantes de cada versão. O formato segue [
 - Salvar um ajuste não apaga mais a opção de iniciar com o Windows criada pelo instalador, e a desinstalação remove essa entrada.
 - Microfones que aparecem em mais de uma API de áudio do Windows podem ser escolhidos sem erro de "microfone indisponível".
 - Textos dos Ajustes corrigidos: padrão da opção de abrir pronto para ditar, aviso de atualização e nome do modelo.
+- Ditar logo depois de um ditado anterior não esconde mais o indicador de gravação, não cola o texto anterior com Ctrl+Win pressionados e não cancela a nova gravação.
+- Mensagens do HUD exibidas com ele fechado, como "microfone indisponível", voltam a sumir sozinhas.
+- Resultados de um ditado anterior não sobrescrevem o HUD e o status da gravação atual.
+- Teclas enviadas pelo próprio Sussurro ou por outros programas não acionam nem cancelam o atalho, e uma tecla Ctrl ou Win "presa" após Win+L deixa de disparar gravações.
+- Falhas da transcrição parcial não aparecem mais como erro durante a gravação.
+- O microfone não abre dois fluxos ao mesmo tempo, e um microfone desconectado é reaberto ou informado.
+- Em janelas executadas como administrador, o texto fica na área de transferência com o aviso para colar com Ctrl+V, em vez de indicar "Colado" sem colar.
+- A configuração inicial permite tentar de novo os downloads do Whisper e do Qwen, iniciar o Ollama instalado e mostra o motivo das falhas.
+- A instalação automática do Ollama só é considerada concluída quando o instalador termina.
+- Arquivos de configuração, histórico, dicionário, macros e modos ilegíveis são preservados como `*.corrupt-<data>` antes de voltar aos padrões.
+- Modelo de IA não baixado aparece como tal no HUD e numa notificação, em vez de "erro na IA".
+- A janela principal não abre mais fora da tela depois que um monitor é desconectado.
+- Atualizar ou trocar entre as variantes CPU e CUDA remove os arquivos da instalação anterior.
+
+### Adicionado (empacotamento)
+
+- Fontes Geist e Geist Mono (OFL) e sons de feedback versionados no repositório; o build falha se algum desses arquivos faltar.
+- Auditoria de dependências (`pip-audit`) no CI.
+- `requires-python` limitado a 3.11 e 3.12, pois o NumPy 1.x não tem pacotes para o Python 3.13.
 
 ## [0.1.1] - 2026-09-01
 

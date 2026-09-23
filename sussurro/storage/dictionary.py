@@ -14,7 +14,7 @@ import json
 import re
 import unicodedata
 
-from sussurro.storage.paths import app_data_dir, write_text_atomic
+from sussurro.storage.paths import app_data_dir, backup_corrupt, write_text_atomic
 
 _MAX_TERMS = 80
 _MAX_PROMPT_CHARS = 800
@@ -106,11 +106,14 @@ class Dictionary:
         else:
             try:
                 raw = json.loads(path.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError):
+            except OSError:
                 raw = []
+            except json.JSONDecodeError:
+                raw = None
             if isinstance(raw, list):
                 self._terms = [str(t).strip() for t in raw if str(t).strip()]
             else:
+                backup_corrupt(path)
                 self._terms = []
 
         sp = self._suggestions_path()
@@ -130,11 +133,14 @@ class Dictionary:
         else:
             try:
                 raw = json.loads(mp.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError):
+            except OSError:
                 raw = {}
+            except json.JSONDecodeError:
+                raw = None
             if isinstance(raw, dict):
                 self._macros = {str(k).strip(): str(v).strip() for k, v in raw.items() if str(k).strip()}
             else:
+                backup_corrupt(mp)
                 self._macros = dict(SEED_MACROS)
 
     def save(self) -> None:

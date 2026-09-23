@@ -69,7 +69,7 @@ Os modelos são baixados no primeiro uso, portanto é necessário acesso à inte
 
 ## Desenvolvimento
 
-O projeto usa Python 3.11 ou posterior. No Windows PowerShell:
+O projeto usa Python 3.11 ou 3.12 (o NumPy 1.x usado pelas dependências de áudio não tem pacotes para o 3.13). No Windows PowerShell:
 
 ```powershell
 git clone https://github.com/Daniellpego/Sussurro.git

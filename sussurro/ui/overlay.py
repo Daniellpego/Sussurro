@@ -371,6 +371,11 @@ class Overlay(QWidget):
         self._auto_hide = QTimer(self)
         self._auto_hide.setSingleShot(True)
         self._auto_hide.timeout.connect(self._fade_out)
+        # hide agendado pelo fade-out; timer próprio pra poder ser cancelado
+        # quando um novo estado chega no meio do sumiço
+        self._hide_timer = QTimer(self)
+        self._hide_timer.setSingleShot(True)
+        self._hide_timer.timeout.connect(self.hide)
 
         self._tick = QTimer(self)
         self._tick.setInterval(200)
@@ -498,7 +503,8 @@ class Overlay(QWidget):
     def _show_pill(self) -> None:
         # novo ciclo: solta âncora pra recentrar na tela em foco
         self._anchor_cx = None
-        self._auto_hide.stop()
+        # não para o _auto_hide: show_done/show_error já o agendaram antes de
+        # chegar aqui (quem cancela sumiços pendentes é _keep_visible)
         self._swap.stop()
         self._pending_swap = None
         self.setWindowOpacity(0.0)
@@ -521,6 +527,7 @@ class Overlay(QWidget):
 
     def show_recording(self, mode: str) -> None:
         """Pílula premium: ● rec · chip do modo · waveform · timer."""
+        self._keep_visible()
         self._mode = mode
         self._state = "recording"
         self._stop_anims()
@@ -572,6 +579,7 @@ class Overlay(QWidget):
         )
 
     def show_transcribing(self, mode: str | None = None) -> None:
+        self._keep_visible()
         self._state = "transcribing"
         self._stop_anims()
         self._txt(self._msg, "transcrevendo", theme.palette().text_secondary)
@@ -586,6 +594,7 @@ class Overlay(QWidget):
             self._show_pill()
 
     def show_processing(self, mode: str) -> None:
+        self._keep_visible()
         self._state = "processing"
         self._stop_anims()
         self._chip.set_mode(mode)
@@ -608,6 +617,7 @@ class Overlay(QWidget):
 
     def show_done(self, ok: bool = True, message: str | None = None,
                   mode: str | None = None) -> None:
+        self._keep_visible()
         self._state = "done"
         self._stop_anims()
         if ok:
@@ -628,6 +638,7 @@ class Overlay(QWidget):
             self._show_pill()
 
     def show_pasted_no_ai(self, why: str = "Ollama offline") -> None:
+        self._keep_visible()
         self._state = "no_ai"
         self._stop_anims()
         color = "#F4D58A" if theme.is_dark() else "#8A6D1A"
@@ -638,6 +649,7 @@ class Overlay(QWidget):
         self._auto_hide.start(2600)
 
     def show_cancelled(self) -> None:
+        self._keep_visible()
         self._state = "cancelled"
         self._stop_anims()
         self._txt(self._msg, "Cancelado", theme.palette().text_secondary)
@@ -647,6 +659,7 @@ class Overlay(QWidget):
         self._auto_hide.start(800)
 
     def show_error(self, message: str) -> None:
+        self._keep_visible()
         self._state = "error"
         self._stop_anims()
         color = theme.palette().state_text(theme.ERROR)
@@ -657,6 +670,7 @@ class Overlay(QWidget):
         self._auto_hide.start(1900)
 
     def show_loading_model(self) -> None:
+        self._keep_visible()
         self._state = "loading"
         self._stop_anims()
         self._txt(self._msg, "aquecendo a GPU…", theme.palette().text_secondary)
@@ -690,7 +704,19 @@ class Overlay(QWidget):
         self._fade.setStartValue(self.windowOpacity())
         self._fade.setEndValue(0.0)
         self._fade.start()
-        QTimer.singleShot(self._fade.duration() + 20, self.hide)
+        self._hide_timer.start(self._fade.duration() + 20)
+
+    def _keep_visible(self) -> None:
+        """Cancela um sumiço pendente antes de mostrar um novo estado.
+
+        Sem isso, gravar logo depois de "Colado" deixava o auto-hide (ou o
+        fade-out já em andamento) esconder a pílula no meio da gravação.
+        """
+        self._auto_hide.stop()
+        if self._hide_timer.isActive():
+            self._hide_timer.stop()
+            self._fade.stop()
+            self.setWindowOpacity(1.0)
 
     def hideEvent(self, event) -> None:  # noqa: N802
         self._stop_anims()

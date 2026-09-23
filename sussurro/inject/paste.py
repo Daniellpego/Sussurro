@@ -23,6 +23,9 @@ log = logging.getLogger("sussurro.paste")
 
 _lock = threading.Lock()
 
+# curta o bastante para caber na pílula do HUD
+ELEVATED_COPIED_MESSAGE = "janela admin: texto copiado, use Ctrl+V"
+
 _PASTE_CHORD = {
     "ctrl+v": "ctrl+v",
     "shift+insert": "shift+insert",
@@ -102,6 +105,47 @@ def foreground_is_elevated() -> bool | None:
             kernel32.CloseHandle(handle)
     except Exception:  # noqa: BLE001
         return None
+
+
+def modifier_keys_held() -> bool:
+    """True enquanto Ctrl, Win, Shift ou Alt estão fisicamente pressionados.
+
+    Colar nesse momento mistura o Ctrl+V com as teclas do usuário (com o
+    atalho Ctrl+Win ainda seguro, o Windows recebe Win+Ctrl+V).
+    """
+    if sys.platform != "win32":
+        return False
+    try:
+        import ctypes
+
+        get_state = ctypes.windll.user32.GetAsyncKeyState
+        # VK_CONTROL, VK_LWIN, VK_RWIN, VK_SHIFT, VK_MENU
+        return any(get_state(vk) & 0x8000 for vk in (0x11, 0x5B, 0x5C, 0x10, 0x12))
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def wait_until_keyboard_free(
+    is_recording,
+    *,
+    recording_timeout: float,
+    keys_timeout: float,
+    keys_held=None,
+    poll: float = 0.03,
+) -> None:
+    """Espera uma gravação em curso terminar e os modificadores serem soltos.
+
+    Um ditado que termina enquanto o próximo já está sendo gravado não pode
+    colar com Ctrl+Win pressionados: o Windows veria Win+Ctrl+V. Os limites
+    de tempo evitam que a fila de colagem trave para sempre.
+    """
+    keys_held = keys_held or modifier_keys_held
+    deadline = time.monotonic() + recording_timeout
+    while is_recording() and time.monotonic() < deadline:
+        time.sleep(poll)
+    deadline = time.monotonic() + keys_timeout
+    while keys_held() and time.monotonic() < deadline:
+        time.sleep(poll)
 
 
 def elevation_blocks_paste() -> bool:
@@ -350,11 +394,17 @@ def paste_text(
         return PasteResult(ok=True, method=method, message="")
 
     with _lock:
-        # aviso UIPI cedo — ainda tenta (às vezes funciona), mas marca
-        elevated = elevation_blocks_paste()
-        if elevated:
-            log.warning("janela em foco parece elevada e o Sussurro não — "
-                        "colagem pode falhar (UIPI)")
+        # UIPI: o Windows descarta em silêncio teclas injetadas numa janela de
+        # administrador (Ctrl+V e digitação), e o SendInput ainda devolve
+        # sucesso. Deixa o texto no clipboard para o usuário colar.
+        if elevation_blocks_paste():
+            log.warning("janela em foco é elevada e o Sussurro não — "
+                        "texto deixado no clipboard (UIPI)")
+            copied = _copy_to_clipboard(text)
+            msg = (ELEVATED_COPIED_MESSAGE if copied
+                   else "janela de administrador bloqueia a colagem")
+            return PasteResult(ok=False, method=method, message=msg,
+                               elevated_block=True)
 
         chain = _chain_for(method if auto_fallback or method == "auto"
                            else method)
@@ -384,11 +434,7 @@ def paste_text(
                     if _try_type(text):
                         _restore_clipboard(previous, text)
                         log.info("paste ok via digitar")
-                        return PasteResult(
-                            ok=True, method="type",
-                            message="digitado (paste bloqueado)" if elevated else "",
-                            elevated_block=elevated,
-                        )
+                        return PasteResult(ok=True, method="type")
                     last_err = "falha ao digitar"
                     continue
 
@@ -399,25 +445,19 @@ def paste_text(
                 if _try_chord(chord):
                     _restore_clipboard(previous, text)
                     log.info("paste ok via %s", step)
-                    return PasteResult(
-                        ok=True, method=step,
-                        elevated_block=elevated,
-                    )
+                    return PasteResult(ok=True, method=step)
                 last_err = f"atalho {step} não pegou"
             except Exception as exc:  # noqa: BLE001
                 last_err = repr(exc)
                 log.debug("passo paste %s falhou: %s", step, exc)
 
         # falhou tudo
-        if elevated:
-            msg = "app como admin bloqueia colagem — rode o Sussurro como admin"
-        elif last_err == "clipboard bloqueado":
+        if last_err == "clipboard bloqueado":
             msg = "clipboard bloqueado por outro app"
         else:
             msg = "não consegui colar — tente modo Digitar nos Ajustes"
         log.error("paste falhou: %s", msg)
-        return PasteResult(
-            ok=False, method=method, message=msg, elevated_block=elevated)
+        return PasteResult(ok=False, method=method, message=msg)
 
 
 # Compat: chamadas antigas que ignoram o retorno continuam ok

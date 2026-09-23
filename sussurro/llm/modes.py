@@ -23,7 +23,7 @@ import re
 from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 
-from sussurro.storage.paths import app_data_dir, write_text_atomic
+from sussurro.storage.paths import app_data_dir, backup_corrupt, write_text_atomic
 
 DEFAULT_LLM_MODEL = "qwen2.5"
 DEFAULT_LLM_LABEL = "Qwen 2.5 · 7B (Ollama)"
@@ -215,7 +215,14 @@ class ModeStore:
             return store
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
+        except OSError:
+            return cls(_seed_defaults())
+        except json.JSONDecodeError:
+            data = None
+        if not isinstance(data, (dict, list)):
+            # sem a cópia, o próximo save (ex.: contador de uso) apagaria
+            # os modos personalizados do arquivo ilegível
+            backup_corrupt(path)
             return cls(_seed_defaults())
 
         # formato ANTIGO: {id: prompt} -> migra preservando prompts customizados

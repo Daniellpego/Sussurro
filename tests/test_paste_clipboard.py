@@ -48,3 +48,15 @@ def test_typing_first_keeps_other_fallbacks() -> None:
         "type", "ctrl+v", "shift+insert",
     ]
     assert paste._typing_first(["ctrl+v"]) == ["ctrl+v"]
+
+
+def test_admin_window_leaves_text_on_clipboard_and_reports_it(monkeypatch) -> None:
+    events = _patch_common(monkeypatch, non_text=False)
+    monkeypatch.setattr(paste, "elevation_blocks_paste", lambda: True)
+    result = paste.paste_text("olá", method="auto")
+    assert result.ok is False
+    assert result.elevated_block is True
+    assert result.message == paste.ELEVATED_COPIED_MESSAGE
+    assert len(result.message) <= 48  # cabe no HUD sem cortar
+    # só copia; nenhuma tecla injetada e nada de restaurar o clipboard
+    assert events == [("copy", "olá")]

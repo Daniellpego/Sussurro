@@ -32,5 +32,8 @@ jobs:
       - name: Ruff
         run: ruff check sussurro scripts tests
 
+      - name: Audit dependencies
+        run: pip-audit -r requirements.txt -r requirements-gpu.txt --progress-spinner off
+
       - name: Validate
         run: python scripts/validate_all.py

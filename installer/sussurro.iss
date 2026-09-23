@@ -59,6 +59,12 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "Criar atalho na área de trabalho"; GroupDescription: "Atalhos:"
 Name: "autostart"; Description: "Iniciar o Sussurro automaticamente no logon"; GroupDescription: "Inicialização:"; Flags: unchecked
 
+[InstallDelete]
+; Remove o bundle anterior antes de copiar o novo: sem isso, trocar da variante
+; CUDA para a CPU (mesmo AppId) deixava ~1 GB de DLLs antigas e arquivos de
+; versões anteriores se acumulavam.
+Type: filesandordirs; Name: "{app}\_internal"
+
 [Files]
 ; PyInstaller bundle inteiro
 Source: "..\dist\Sussurro\Sussurro.exe"; DestDir: "{app}"; Flags: ignoreversion

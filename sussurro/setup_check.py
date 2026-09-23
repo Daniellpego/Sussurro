@@ -166,6 +166,7 @@ def get_free_disk_space_gb(path: str | Path | None = None) -> float:
 # ------------------------------------------------------------------------ Ollama
 
 OLLAMA_INSTALLER_URL = "https://ollama.com/download/OllamaSetup.exe"
+_OLLAMA_INSTALL_TIMEOUT_S = 180.0
 
 
 def ollama_installed() -> bool:
@@ -273,13 +274,15 @@ class OllamaInstallWorker(QThread):
         self.status_changed.emit("Instalando Ollama silenciosamente…")
         try:
             proc = subprocess.Popen([str(installer_path), "/silent"])
-            # Aguarda até 60 segundos o instalador finalizar ou o daemon subir
+            # Espera o instalador terminar (ou o serviço responder). O
+            # ollama.exe aparece no disco antes de a instalação acabar, então
+            # a existência do arquivo sozinha não conta como sucesso.
             t_start = time.monotonic()
-            while time.monotonic() - t_start < 60.0:
+            while time.monotonic() - t_start < _OLLAMA_INSTALL_TIMEOUT_S:
                 if self._cancelled:
                     proc.kill()
                     return
-                if ollama_running() or ollama_installed():
+                if ollama_running() or proc.poll() is not None:
                     break
                 time.sleep(1.0)
         except Exception as exc:  # noqa: BLE001
@@ -293,11 +296,26 @@ class OllamaInstallWorker(QThread):
                 pass
 
         # 4. Confirmação
-        if ollama_running() or ollama_installed():
+        finished = proc.poll() == 0
+        if ollama_running() or (finished and ollama_installed()):
             self.status_changed.emit("Ollama instalado com sucesso!")
             self.finished_ok.emit()
         else:
-            self.failed.emit("Instalação do Ollama concluída, mas o serviço não respondeu a tempo.")
+            self.failed.emit("A instalação do Ollama não terminou a tempo. "
+                             "Tente de novo ou instale pelo site ollama.com.")
+
+
+def pull_error_message(error: str) -> str:
+    """Traduz erros do /api/pull do Ollama numa mensagem curta pro usuário."""
+    low = error.lower()
+    if any(k in low for k in ("dial tcp", "no such host", "connecterror",
+                              "timeout", "network", "connection")):
+        return "sem conexão com a internet ou com o Ollama"
+    if "no space" in low or "disk" in low:
+        return "espaço em disco insuficiente para o modelo"
+    if "file does not exist" in low or "not found" in low:
+        return "modelo não encontrado no catálogo do Ollama"
+    return f"falha ao baixar o modelo: {error[:120]}"
 
 
 class QwenPullWorker(QThread):
@@ -334,6 +352,10 @@ class QwenPullWorker(QThread):
                         data = json.loads(line)
                     except ValueError:
                         continue
+                    if data.get("error"):
+                        # ex.: sem internet, modelo inexistente, disco cheio
+                        self.failed.emit(pull_error_message(str(data["error"])))
+                        return
                     total = data.get("total")
                     completed = data.get("completed")
                     if total:
@@ -344,7 +366,7 @@ class QwenPullWorker(QThread):
                         self.finished_ok.emit()
                         return
         except Exception as e:  # noqa: BLE001
-            self.failed.emit(repr(e))
+            self.failed.emit(pull_error_message(repr(e)))
             return
         if not success:
             self.failed.emit("pull do Qwen terminou sem confirmação de sucesso")
