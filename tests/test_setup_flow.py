@@ -9,19 +9,6 @@ import pytest
 from sussurro import setup_check
 
 
-@pytest.fixture(scope="module")
-def qt_app():
-    widgets = pytest.importorskip("PySide6.QtWidgets")
-    app = widgets.QApplication.instance()
-    if app is None:
-        app = widgets.QApplication([])
-    elif not isinstance(app, widgets.QApplication):
-        pytest.skip("outro teste já criou um QCoreApplication sem widgets")
-    from sussurro.ui import fonts
-    fonts.load_fonts()
-    return app
-
-
 class _FakeWorker:
     instances: list[_FakeWorker] = []
 

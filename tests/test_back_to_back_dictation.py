@@ -13,19 +13,6 @@ from sussurro.inject import paste
 
 # --------------------------------------------------------------------- HUD
 
-@pytest.fixture(scope="module")
-def qt_app():
-    widgets = pytest.importorskip("PySide6.QtWidgets")
-    app = widgets.QApplication.instance()
-    if app is None:
-        app = widgets.QApplication([])
-    elif not isinstance(app, widgets.QApplication):
-        pytest.skip("outro teste já criou um QCoreApplication sem widgets")
-    from sussurro.ui import fonts
-    fonts.load_fonts()
-    return app
-
-
 def test_new_recording_cancels_pending_fade_out(qt_app) -> None:
     from sussurro.ui.overlay import Overlay
 
