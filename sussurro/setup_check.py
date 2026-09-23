@@ -52,10 +52,21 @@ def detect_gpu() -> tuple[str, int] | None:
 # ----------------------------------------------------------------------- Whisper
 
 def whisper_repo(model_size: str) -> str:
-    special = {
-        "large-v3-turbo": "deepdml/faster-whisper-large-v3-turbo-ct2",
-    }
-    return special.get(model_size, f"Systran/faster-whisper-{model_size}")
+    """Repositório que o faster-whisper realmente usa para este tamanho.
+
+    Precisa sair da mesma fonte que o ASR (WhisperModel resolve o nome curto
+    pelo catálogo do faster-whisper). Uma tabela paralela aqui faz o setup
+    baixar um repositório e o ASR baixar outro: 1,5 GB desperdiçados e
+    whisper_cached() sempre False, repetindo o download a cada primeiro uso.
+    """
+    try:
+        from faster_whisper.utils import _MODELS
+        repo = _MODELS.get(model_size)
+        if repo:
+            return repo
+    except Exception:  # noqa: BLE001
+        pass
+    return f"Systran/faster-whisper-{model_size}"
 
 
 def whisper_cached(model_size: str) -> bool:
