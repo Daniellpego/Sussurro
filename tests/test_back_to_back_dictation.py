@@ -177,3 +177,24 @@ def test_saved_window_position_must_be_on_a_screen(qt_app) -> None:
     # posição salva num segundo monitor que foi desconectado
     assert not position_is_on_screen(2500, 300, screens)
     assert position_is_on_screen(2500, 300, screens + [QRect(1920, 0, 2560, 1400)])
+
+
+def test_loading_notice_goes_away_when_model_is_ready() -> None:
+    from sussurro.ui.overlay import Overlay
+
+    overlay = Overlay(level_source=lambda: 0.0)
+    overlay.show_loading_model()
+    assert not overlay._auto_hide.isActive()  # noqa: SLF001 - fica até ficar pronto
+    overlay.dismiss_loading()
+    assert overlay._hide_timer.isActive()  # noqa: SLF001
+    overlay.close()
+
+
+def test_dismiss_loading_leaves_other_states_alone() -> None:
+    from sussurro.ui.overlay import Overlay
+
+    overlay = Overlay(level_source=lambda: 0.0)
+    overlay.show_recording("raw")
+    overlay.dismiss_loading()
+    assert not overlay._hide_timer.isActive()  # noqa: SLF001 - gravando continua
+    overlay.close()

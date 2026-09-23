@@ -99,7 +99,7 @@ O modo define o que acontece com o texto antes de ser colado. Troque pela bandej
 
 | Modo | O que faz |
 |---|---|
-| Raw | Texto exatamente como foi falado, sem IA |
+| Raw | Sem IA; aplica dicionário, pontuação e comandos de voz configurados |
 | Clean | Remove vícios de linguagem e corrige a gramática |
 | Email · Corporativo | Reescreve como e-mail profissional ou executivo |
 | Bullets | Resume em tópicos |

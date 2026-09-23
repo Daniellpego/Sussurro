@@ -96,3 +96,23 @@ def test_main_window_reflects_changes_made_in_settings(monkeypatch, tmp_path) ->
         assert win._lang_row._value._text == labels.LANGUAGE["en"]  # noqa: SLF001
     finally:
         win.close()
+
+
+def test_mode_editor_saves_selected_ollama_model(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    from sussurro.llm.modes import ModeStore
+    from sussurro.llm.worker import LLMWorker
+    from sussurro.ui.modes_ui import ModeEditor, QInputDialog
+
+    store = ModeStore.load()
+    editor = ModeEditor(store, "clean")
+    try:
+        monkeypatch.setattr(QInputDialog, "getText", lambda *a, **k: ("meu-modelo:latest", True))
+        assert editor._model_row._interactive  # noqa: SLF001
+        editor._pick_model()  # noqa: SLF001
+        assert editor._model_row._value._text == "meu-modelo:latest"  # noqa: SLF001
+        editor._save()  # noqa: SLF001
+        assert ModeStore.load().get("clean").model == "meu-modelo:latest"
+        assert LLMWorker(store)._resolve_model("clean") == "meu-modelo:latest"  # noqa: SLF001
+    finally:
+        editor.close()

@@ -21,7 +21,6 @@ from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon
 
 from sussurro.asr.whisper import (
-    PartialTranscriptionJob,
     TranscriptionJob,
     TranscriptionResult,
     WhisperWorker,
@@ -122,9 +121,6 @@ class App(QObject):
         self._llm_idle_timer.setSingleShot(True)
         self._llm_idle_timer.setInterval(2 * 60 * 1000)  # 2 min
         self._llm_idle_timer.timeout.connect(self._on_llm_idle)
-        self._partial_timer = QTimer(self)
-        self._partial_timer.setInterval(1800)
-        self._partial_timer.timeout.connect(self._request_partial)
 
         # UI (compartilha o ModeStore com o LLM worker)
         self._window = MainWindow(self._cfg, self._history,
@@ -167,7 +163,6 @@ class App(QObject):
         self._worker.ready.connect(self._on_worker_ready)
         self._worker.started_transcription.connect(self._on_started_inf)
         self._worker.done.connect(self._on_asr_done)
-        self._worker.partial.connect(self._on_partial)
         self._worker.failed.connect(self._on_failed)
         self._worker.reloading.connect(self._on_reloading)
         self._worker.recovered.connect(self._on_worker_recovered)
@@ -465,6 +460,7 @@ class App(QObject):
     def _on_worker_ready(self) -> None:
         log.info("modelo carregado e aquecido")
         self._asr_ready = True
+        self._overlay.dismiss_loading()
         self._maybe_start_hotkeys()
         self._restart_idle()
         if self._asr_note:
@@ -523,14 +519,12 @@ class App(QObject):
         from sussurro import sound
         sound.play("start", self._cfg.play_sound)
         self._set_status("recording", "ouvindo…")
-        self._partial_timer.start()
 
     @Slot(float)
     def _on_released(self, hotkey_at: float) -> None:
         if not self._recorder.is_recording:
             return
         log.info("PTT released: transcrevendo")
-        self._partial_timer.stop()
         trace = self._traces.get(self._active_request_id)
         if trace:
             trace.mark("hotkey_up", hotkey_at)
@@ -543,9 +537,8 @@ class App(QObject):
             audio=audio,
             mode=self._active_mode,
             request_id=self._active_request_id,
-            # estilo PT-BR + termos; hotwords = bias nativo do CTranslate2
+            # estilo PT-BR + termos, curto (ver dictionary.to_prompt)
             initial_prompt=self._dictionary.to_prompt(),
-            hotwords=self._dictionary.to_hotwords(),
         ))
         self._restart_idle()  # rearma o timer de ociosidade
 
@@ -557,7 +550,6 @@ class App(QObject):
             return
         log.info("PTT cancelled: terceira tecla detectada (system shortcut)")
         self._recorder.stop()  # descarta o buffer
-        self._partial_timer.stop()
         self._traces.pop(self._active_request_id, None)
         if self._cfg.show_overlay:
             self._overlay.show_cancelled()
@@ -571,27 +563,6 @@ class App(QObject):
         trace = self._traces.get(self._active_request_id)
         if trace:
             trace.mark("first_frame_received", at)
-
-    @Slot()
-    def _request_partial(self) -> None:
-        if not self._recorder.is_recording:
-            return
-        audio = self._recorder.snapshot()
-        self._worker.submit_partial(PartialTranscriptionJob(
-            audio=audio,
-            request_id=self._active_request_id,
-            initial_prompt=self._dictionary.to_prompt(),
-        ))
-
-    @Slot(int, str)
-    def _on_partial(self, request_id: int, text: str) -> None:
-        if request_id != self._active_request_id or not self._recorder.is_recording:
-            return
-        trace = self._traces.get(request_id)
-        if trace:
-            trace.mark("first_partial")
-        if self._cfg.show_overlay:
-            self._overlay.show_partial(text, self._active_mode)
 
     @Slot(object)
     def _on_asr_done(self, result: TranscriptionResult) -> None:
@@ -994,7 +965,6 @@ class App(QObject):
                 self._recorder.stop()
             except Exception:  # noqa: BLE001
                 pass
-        self._partial_timer.stop()
         self._recorder.close()
         self._audio_ready = False
         self._idle_timer.stop()
@@ -1112,6 +1082,14 @@ def run() -> int:
     qt.setApplicationName("Sussurro")
     qt.setOrganizationName("Sussurro")
     qt.setQuitOnLastWindowClosed(False)
+
+    # já aberto: só traz a janela da instância existente para frente
+    from sussurro.single_instance import SingleInstance
+    instance = SingleInstance()
+    if not instance.acquire():
+        log.info("Sussurro já está aberto; mostrando a janela existente")
+        instance.notify_running()
+        return 0
     from sussurro.ui.components import brand_icon
     qt.setWindowIcon(brand_icon())
     # Fusion respeita 100% do QSS (estilo nativo do Windows pinta gradients
@@ -1139,6 +1117,7 @@ def run() -> int:
         log.warning("system tray indisponivel — app vai rodar so com janela")
 
     app = App(qt)
+    instance.listen(app._show_window)
     app.start()
 
     # Ctrl+C no console -> shutdown gracioso

@@ -8,6 +8,9 @@ Princípios (críticos):
 - Animações param quando o HUD some (não queima GPU à toa).
 - Posição: base da tela da janela em foco (multi-monitor).
 
+Gravando é só a onda numa pílula escura compacta, sem texto, ponto de
+gravação nem cronômetro (estilo Wispr Flow).
+
 Estados: gravando · transcrevendo · refinando (LLM) · colado · colado sem IA
 · cancelado · nenhuma fala · falha · carregando modelo.
 """
@@ -33,7 +36,6 @@ from PySide6.QtGui import (
     QPainter,
     QPaintEvent,
     QPen,
-    QRadialGradient,
 )
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QWidget
 
@@ -72,41 +74,6 @@ class _Anim(QWidget):
         return time.monotonic() - self._t0
 
 
-class _RingDot(_Anim):
-    """Dot de gravação com glow + pulso (estilo Wispr / SuperWhisper)."""
-
-    SIZE = 14
-
-    def __init__(self, parent=None) -> None:
-        super().__init__(parent)
-        self.setFixedSize(self.SIZE, self.SIZE)
-
-    def _color(self) -> QColor:
-        return theme.qcolor(theme.palette().state(theme.ERROR))
-
-    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
-        p = QPainter(self)
-        p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        p.setPen(Qt.PenStyle.NoPen)
-        cx = cy = self.SIZE / 2
-        t = self._elapsed()
-        # respiração 0.55↔1.0 + anel de glow suave
-        breath = 0.55 + 0.45 * (0.5 + 0.5 * math.sin(2 * math.pi * t / 1.25))
-        ring = 0.15 + 0.25 * (0.5 + 0.5 * math.sin(2 * math.pi * t / 1.25 + 0.8))
-
-        # glow externo
-        glow = self._color()
-        glow.setAlphaF(ring * 0.55)
-        p.setBrush(glow)
-        p.drawEllipse(QRectF(cx - 6.5, cy - 6.5, 13, 13))
-
-        # núcleo
-        core = self._color()
-        core.setAlphaF(breath)
-        p.setBrush(core)
-        p.drawEllipse(QRectF(cx - 3.5, cy - 3.5, 7, 7))
-
-
 class _HudWaveform(_Anim):
     """Onda de voz ao vivo no estilo da marca: poucas barras-cápsula simétricas.
 
@@ -130,7 +97,7 @@ class _HudWaveform(_Anim):
         self._heights = [0.0] * self._n
         self._voice = 0.0
         w = self._n * self._bw + (self._n - 1) * self._gap
-        self.setFixedSize(math.ceil(w), 24)
+        self.setFixedSize(math.ceil(w), 20)
         self._timer.setInterval(16)  # 60 fps só enquanto grava
         self._timer.timeout.disconnect()
         self._timer.timeout.connect(self._frame)
@@ -317,8 +284,6 @@ class Overlay(QWidget):
         self._tint = "neutral"     # neutral | amber | red | record
         self._pill_h = theme.HUD_HEIGHT
         self._pill_r = theme.HUD_RADIUS
-        self._start_time: float | None = None
-        self._glow_phase = 0.0
 
         self.setWindowFlags(
             Qt.WindowType.Tool
@@ -336,7 +301,6 @@ class Overlay(QWidget):
         self._row.setContentsMargins(16, 0, 16, 0)
         self._row.setSpacing(11)
 
-        self._ring = _RingDot(self._content)
         self._chip = ModeChip("raw", self._content)
         self._wave = _HudWaveform(self._level_source, parent=self._content)
         self._dots = _BouncingDots(self._content)
@@ -345,11 +309,9 @@ class Overlay(QWidget):
         self._cross = _Badge("cross", self._content)
         self._errb = _Badge("error", self._content)
         self._warn = _Dot7(theme.palette().state(theme.WARNING), self._content)
-        self._timer_lbl = QLabel(self._content)
         self._msg = QLabel(self._content)
-        for w in (self._ring, self._chip, self._wave, self._dots, self._spin,
-                  self._check, self._cross, self._errb, self._warn,
-                  self._timer_lbl, self._msg):
+        for w in (self._chip, self._wave, self._dots, self._spin,
+                  self._check, self._cross, self._errb, self._warn, self._msg):
             w.hide()
 
         self._fade = QPropertyAnimation(self, b"windowOpacity")
@@ -376,15 +338,6 @@ class Overlay(QWidget):
         self._hide_timer.setSingleShot(True)
         self._hide_timer.timeout.connect(self.hide)
 
-        self._tick = QTimer(self)
-        self._tick.setInterval(200)
-        self._tick.timeout.connect(self._update_timer)
-
-        # repaint da pílula (glow de gravação) em ~30fps
-        self._glow_timer = QTimer(self)
-        self._glow_timer.setInterval(_FRAME_MS)
-        self._glow_timer.timeout.connect(self._tick_glow)
-
         self._anchor_cx: int | None = None
         self._anchor_bottom = 0
         self._minimal = False  # legado: gravação agora usa pílula cheia
@@ -392,18 +345,12 @@ class Overlay(QWidget):
     # ------------------------------------------------------------------ infra
 
     def _all_anims(self) -> tuple:
-        return (self._ring, self._wave, self._dots, self._spin)
+        return (self._wave, self._dots, self._spin)
 
     def _stop_anims(self) -> None:
         for a in self._all_anims():
             a.stop()
-        self._tick.stop()
         self._slow.stop()
-        self._glow_timer.stop()
-
-    def _tick_glow(self) -> None:
-        self._glow_phase = time.monotonic()
-        self.update()
 
     def _clear_row(self) -> None:
         while self._row.count():
@@ -460,7 +407,6 @@ class Overlay(QWidget):
 
         self._content.adjustSize()
         cw = min(self._content.sizeHint().width(), _MAX_TEXT_W + 2 * pad_h + 48)
-        # altura hero um pouco maior na gravação (mais presença visual)
         self.setFixedSize(cw + 2 * _M, height + 2 * _M)
         self._content.setGeometry(_M, _M, cw, height)
         self._reposition()
@@ -525,69 +471,31 @@ class Overlay(QWidget):
     # --------------------------------------------------------------- estados
 
     def show_recording(self, mode: str) -> None:
-        """Pílula premium: ● rec · chip do modo · waveform · timer."""
+        """Só a onda; o chip aparece quando o modo não é o padrão."""
         self._keep_visible()
         self._mode = mode
         self._state = "recording"
         self._stop_anims()
-        self._chip.set_mode(mode)
-        self._start_time = time.monotonic()
-        pal = theme.palette()
-        # timer mono discreto (não compete com o waveform)
-        self._txt(self._timer_lbl, "0:00", pal.text_tertiary, size=11, mono=True)
-        items: list = [self._ring]
-        # chip só se não for raw (raw já é o default óbvio)
-        if mode and mode != "raw":
-            items.append(self._chip)
-        items.extend([self._wave, self._timer_lbl])
-        self._apply(
-            items,
-            pad_h=14,
-            gap=12,
-            tint="record",
-            height=theme.HUD_HEIGHT_HERO,
-            radius=theme.HUD_RADIUS_HERO,
-            pad_l=14,
-            pad_r=16,
-        )
-        self._ring.start()
-        self._wave.start()
-        self._tick.start()
-        self._glow_timer.start()
-        if not self.isVisible():
-            self._show_pill()
-
-    def show_partial(self, text: str, mode: str | None = None) -> None:
-        """Mostra uma hipótese ao vivo apenas no HUD."""
-        if self._state not in {"recording", "partial"}:
-            return
-        self._state = "partial"
-        clean = " ".join(text.split())
-        if len(clean) > 72:
-            clean = "…" + clean[-71:]
-        self._txt(self._msg, clean, theme.palette().text_primary)
-        items: list = [self._ring]
+        items: list = []
         if mode and mode != "raw":
             self._chip.set_mode(mode)
             items.append(self._chip)
-        items.extend([self._msg, self._timer_lbl])
-        self._apply_now(
-            items, pad_h=14, gap=10, tint="record",
-            height=theme.HUD_HEIGHT_HERO, radius=theme.HUD_RADIUS_HERO,
-            pad_l=14, pad_r=16,
-        )
+        items.append(self._wave)
+        self._apply(items, pad_h=18, gap=10, pad_l=14 if items[0] is self._chip else 18)
+        self._wave.start()
+        if not self.isVisible():
+            self._show_pill()
 
     def show_transcribing(self, mode: str | None = None) -> None:
         self._keep_visible()
         self._state = "transcribing"
         self._stop_anims()
-        self._txt(self._msg, "Transcrevendo…", theme.palette().text_secondary)
-        items: list = [self._dots]
+        items: list = []
         if mode and mode != "raw":
             self._chip.set_mode(mode)
             items.append(self._chip)
-        items.append(self._msg)
-        self._apply(items, pad_h=16, gap=10, height=theme.HUD_HEIGHT)
+        items.append(self._dots)
+        self._apply(items, pad_h=18, gap=10, pad_l=14 if items[0] is self._chip else 18)
         self._dots.start()
         if not self.isVisible():
             self._show_pill()
@@ -680,24 +588,18 @@ class Overlay(QWidget):
         if not self.isVisible():
             self._show_pill()
 
+    def dismiss_loading(self) -> None:
+        """Some com o "Carregando o modelo…" quando o modelo fica pronto.
+
+        O aviso não tem auto-hide; sem isso ele ficava na tela até o próximo
+        ditado substituí-lo.
+        """
+        if self._state == "loading" and self.isVisible():
+            self._fade_out()
+
     def set_mode(self, mode: str) -> None:
         self._mode = mode
         self._chip.set_mode(mode)
-
-    # ------------------------------------------------------------------ timer
-
-    def _update_timer(self) -> None:
-        if self._start_time is None:
-            return
-        elapsed = int(time.monotonic() - self._start_time)
-        pal = theme.palette()
-        self._txt(self._timer_lbl, f"{elapsed // 60}:{elapsed % 60:02d}",
-                  pal.text_tertiary, size=11, mono=True)
-        # só a largura pode crescer (ex.: 9:59 -> 10:00); a altura fica a da
-        # pílula. adjustSize() encolhia o conteúdo para a altura natural,
-        # colado no topo, e tudo subia ~11 px depois do primeiro segundo.
-        width = max(self._content.width(), self._content.sizeHint().width())
-        self._content.resize(width, self._pill_h)
 
     # ------------------------------------------------------------------- fade
 
@@ -741,15 +643,10 @@ class Overlay(QWidget):
             if dark:
                 return QColor(42, 20, 20, 230), QColor(255, 69, 58, 95)
             return QColor(251, 228, 226, 245), QColor(255, 59, 48, 120)
-        if self._tint == "record":
-            # vidro um pouco mais opaco + borda com cor da marca
-            if dark:
-                return QColor(18, 19, 24, 242), QColor(124, 132, 255, 100)
-            return QColor(255, 255, 255, 245), QColor(110, 116, 245, 130)
         # neutro
         if dark:
-            return QColor(20, 21, 26, 240), theme.qcolor("rgba(255,255,255,0.10)")
-        return QColor(255, 255, 255, 242), theme.qcolor("rgba(0,0,0,0.08)")
+            return QColor(14, 14, 18, 246), theme.qcolor("rgba(255,255,255,0.09)")
+        return QColor(255, 255, 255, 248), theme.qcolor("rgba(0,0,0,0.07)")
 
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
         if self._minimal:
@@ -761,37 +658,21 @@ class Overlay(QWidget):
 
         dark = theme.is_dark()
 
-        # ---- glow de gravação (halo da marca, respira) ----
-        if self._tint == "record":
-            breath = 0.35 + 0.25 * (
-                0.5 + 0.5 * math.sin(2 * math.pi * (self._glow_phase % 2.0) / 2.0)
-            )
-            glow_rect = pill.adjusted(-10, -8, 10, 12)
-            grad = QRadialGradient(pill.center(), max(pill.width(), pill.height()) * 0.7)
-            c1 = theme.qcolor(theme.GRAD_A)
-            c1.setAlphaF(0.18 * breath)
-            c2 = theme.qcolor(theme.GRAD_B)
-            c2.setAlphaF(0.10 * breath)
-            c3 = QColor(0, 0, 0, 0)
-            grad.setColorAt(0.0, c1)
-            grad.setColorAt(0.55, c2)
-            grad.setColorAt(1.0, c3)
-            p.setPen(Qt.PenStyle.NoPen)
-            p.setBrush(grad)
-            p.drawEllipse(glow_rect)
-
-        # ---- sombra em camadas ----
-        base = QColor(0, 0, 0) if dark else QColor(20, 22, 40)
-        per = (0.55 if dark else 0.20) / _M * 1.15
+        # ---- sombra suave ----
+        # camadas finas com queda quadrática: somadas viram um desfoque sem
+        # borda visível. Cabe inteira na margem, então nada é cortado.
+        spread = _M - 3
+        total = 0.34 if dark else 0.13
         p.setPen(Qt.PenStyle.NoPen)
-        for i in range(_M, 0, -1):
-            c = QColor(base)
-            c.setAlphaF(per)
+        for i in range(spread, 0, -1):
+            outer = 1.0 - (i - 1) / spread
+            inner = 1.0 - i / spread
+            c = QColor(0, 0, 0)
+            c.setAlphaF(total * (outer * outer - inner * inner))
             p.setBrush(c)
             grow = float(i)
-            p.drawRoundedRect(
-                pill.adjusted(-grow, -grow + 3, grow, grow + 6),
-                r + grow, r + grow)
+            p.drawRoundedRect(pill.adjusted(-grow, -grow + 2, grow, grow + 2),
+                              r + grow, r + grow)
 
         # ---- corpo da pílula ----
         fill, border = self._pill_fill_border()
@@ -799,20 +680,8 @@ class Overlay(QWidget):
         p.setPen(Qt.PenStyle.NoPen)
         p.drawRoundedRect(pill, r, r)
 
-        # highlight superior sutil (vidro)
-        if dark or self._tint == "record":
-            hi = QLinearGradient(pill.topLeft(), pill.bottomLeft())
-            top = QColor(255, 255, 255)
-            top.setAlphaF(0.06 if dark else 0.35)
-            bot = QColor(255, 255, 255, 0)
-            hi.setColorAt(0.0, top)
-            hi.setColorAt(0.45, bot)
-            p.setBrush(hi)
-            p.drawRoundedRect(pill, r, r)
-
-        # borda (anel da marca já embutido na cor, na gravação)
         pen = QPen(border)
-        pen.setWidthF(1.2 if self._tint == "record" else 1.0)
+        pen.setWidthF(1.0)
         p.setPen(pen)
         p.setBrush(Qt.BrushStyle.NoBrush)
         p.drawRoundedRect(pill.adjusted(0.5, 0.5, -0.5, -0.5), r, r)

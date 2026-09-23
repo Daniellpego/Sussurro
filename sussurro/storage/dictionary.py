@@ -1,8 +1,13 @@
 """Dicionário do usuário — termos/nomes/jargão que enviesam o Whisper.
 
-Duas alavancas no faster-whisper:
-1. `hotwords` — bias direto de decodificação nos termos (API nativa).
-2. `initial_prompt` — prosa de estilo (acentuação PT-BR + code-switching).
+Os termos entram no `initial_prompt`, junto com uma frase curta de estilo
+(acentuação PT-BR + termos técnicos em inglês).
+
+O prompt é curto de propósito. O Whisper tem 448 tokens por janela de 30 s,
+e o prompt sai desse orçamento: com a lista inteira no prompt e de novo em
+`hotwords`, sobravam ~90 tokens para a fala, e ditados longos eram cortados.
+Uma lista longa separada por vírgulas também ensinava o modelo a repetir
+palavras ("chat, chat, chat…"). Por isso não usamos `hotwords`.
 
 No primeiro boot sem arquivo, semeia termos comuns de dev/PT.
 Sugestões: observa transcricões e propõe termos conhecidos ainda não
@@ -17,17 +22,12 @@ import unicodedata
 from sussurro.storage.paths import app_data_dir, backup_corrupt, write_text_atomic
 
 _MAX_TERMS = 80
-_MAX_PROMPT_CHARS = 800
-_MAX_HOTWORDS_CHARS = 400
+_MAX_PROMPT_CHARS = 400  # ~130 tokens de 448
 _MAX_SUGGESTIONS = 40
 
 _STYLE_PROMPT = (
-    "Transcrição de ditado em português brasileiro. "
-    "Use acentuação correta (você, não, é, até, também, está, horário). "
-    "Pontuação natural. "
-    "Preserve nomes próprios, marcas e termos técnicos em inglês exatamente "
-    "como o falante usou (API, Python, GitHub, Claude, Ollama, refactor). "
-    "Não traduza jargão técnico."
+    "Ditado em português do Brasil, com acentuação e pontuação corretas. "
+    "Termos técnicos ficam em inglês."
 )
 
 # Semente de 1º uso — jargão que o Whisper PT-BR costuma errar a grafia.
@@ -298,40 +298,20 @@ class Dictionary:
         self._save_suggestions()
         return uniq
 
-    def to_hotwords(self) -> str | None:
-        if not self._terms:
-            return None
-        parts: list[str] = []
-        total = 0
-        for t in self._terms[:_MAX_TERMS]:
-            piece = t.strip()
-            if not piece:
-                continue
-            add = len(piece) + (2 if parts else 0)
-            if total + add > _MAX_HOTWORDS_CHARS:
-                break
-            parts.append(piece)
-            total += add
-        return ", ".join(parts) if parts else None
-
     def to_prompt(self) -> str | None:
-        base = _STYLE_PROMPT
-        if not self._terms:
-            return base
+        """Estilo + o máximo de termos que couber em _MAX_PROMPT_CHARS.
 
-        terms = self._terms[:_MAX_TERMS]
-        vocab = " Vocabulário esperado: " + ", ".join(terms) + "."
-        prompt = base + vocab
-        if len(prompt) > _MAX_PROMPT_CHARS:
-            budget = _MAX_PROMPT_CHARS - len(base) - len(" Vocabulário esperado: .")
-            kept: list[str] = []
-            used = 0
-            for t in terms:
-                need = len(t) + (2 if kept else 0)
-                if used + need > budget:
-                    break
-                kept.append(t)
-                used += need
-            prompt = (base + " Vocabulário esperado: " + ", ".join(kept) + "."
-                      if kept else base)
-        return prompt
+        Termos que o usuário adicionou vêm antes dos da semente, para não
+        serem os primeiros a ficar de fora.
+        """
+        base = _STYLE_PROMPT
+        seed = {t.lower() for t in SEED_TERMS}
+        own = [t for t in self._terms if t.lower() not in seed]
+        seeded = [t for t in self._terms if t.lower() in seed]
+        kept: list[str] = []
+        head = base + " Vocabulário: "
+        for t in (own + seeded)[:_MAX_TERMS]:
+            if len(head + ", ".join(kept + [t]) + ".") > _MAX_PROMPT_CHARS:
+                break
+            kept.append(t)
+        return head + ", ".join(kept) + "." if kept else base

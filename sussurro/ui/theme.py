@@ -214,10 +214,8 @@ SP_GAP_LG = 10
 TITLEBAR_HEIGHT = 40
 
 # --- HUD / pilula (novo design) ---
-HUD_HEIGHT = 40
-HUD_HEIGHT_HERO = 46
-HUD_RADIUS = 20
-HUD_RADIUS_HERO = 23
+HUD_HEIGHT = 36
+HUD_RADIUS = 18
 HUD_BOTTOM_MARGIN = 80
 HUD_SHADOW_MARGIN = 18    # folga ao redor da pilula pra sombra nao cortar
 

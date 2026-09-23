@@ -91,7 +91,7 @@ The installers are not code-signed yet, so Windows may show “Windows protected
   <img src="docs/images/hud-colado.png" alt="Text pasted" height="52">
 </p>
 
-Writing modes decide what happens to the text before it is pasted: Raw (verbatim), Clean, Email, Corporate email, Bullets, Prompt, Code, Translate (Portuguese → English), and templates for radiology reports (BI-RADS) and legal petitions. AI modes need Ollama. You can edit them and create your own.
+Writing modes decide what happens to the text before it is pasted: Raw (no AI; applies configured dictionary, punctuation, and voice commands), Clean, Email, Corporate email, Bullets, Prompt, Code, Translate (Portuguese → English), and templates for radiology reports (BI-RADS) and legal petitions. AI modes need Ollama. You can edit them and create your own.
 
 ## Features
 
