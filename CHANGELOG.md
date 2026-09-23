@@ -31,6 +31,9 @@ Este arquivo registra as mudanças relevantes de cada versão. O formato segue [
 
 ### Corrigido
 
+- O app não fecha mais sozinho ao concluir a tela de primeiro uso. O medidor de nível do microfone deixava o fluxo de áudio aberto ao ser descartado, e o processo era derrubado logo em seguida. Como a falha acontecia antes de o primeiro uso ser marcado como concluído, a tela reaparecia a cada abertura e uma instalação nova nunca chegava à janela principal.
+- O primeiro uso baixa 1,5 GB em vez de 3 GB: a tela de preparação verificava um repositório de modelo diferente do que a transcrição carrega, então o download acontecia duas vezes e se repetia a cada abertura.
+- Os pesos do modelo de linguagem são liberados da memória da placa de vídeo ao fechar o app, como a opção já prometia.
 - Comandos de pontuação falados não alteram mais frases comuns, como "ganhei dois pontos no jogo", "a vírgula está errada" ou "chegamos ao ponto final".
 - Frases iniciadas depois de "ponto final" ou "nova linha" recebem maiúscula.
 - A quebra de linha não se perde quando vem logo depois de um comando de pontuação.
