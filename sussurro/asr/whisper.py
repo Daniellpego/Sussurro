@@ -103,6 +103,9 @@ class WhisperWorker(QThread):
         self._best_of = int(preset["best_of"])
         self._language = _resolve_language(language)
         self._quality_preset = quality_preset
+        # o que a config pediu; _model_size/_device/_compute_type podem mudar
+        # depois de um fallback, mas só um pedido diferente força reload
+        self._requested = (self._model_size, device, self._compute_type)
         self._queue: queue.Queue = queue.Queue()
         self._model = None
         self._stop = False
@@ -115,18 +118,34 @@ class WhisperWorker(QThread):
         self._language = _resolve_language(language)
 
     def set_quality_preset(self, preset: str) -> None:
-        """Atualiza beam/preset; reload do modelo se compute/model mudarem."""
+        """Atualiza beam/best_of do preset. Não troca modelo nem compute."""
         p = resolve_preset(preset)
         self._quality_preset = preset
         self._beam_size = int(p["beam_size"])
         self._best_of = int(p["best_of"])
-        # model/compute do preset só se o usuário não customizou pra outro
-        # (aqui o preset manda no compute_type "leve")
-        if p["compute_type"] != self._compute_type or p["model_size"] != self._model_size:
-            self._compute_type = p["compute_type"]
-            self._model_size = p["model_size"]
-            # pede reload na próxima job
-            self.request_unload()
+
+    def configure(self, *, model_size: str | None, compute_type: str | None,
+                  quality_preset: str) -> bool:
+        """Aplica modelo, compute e preset vindos da config.
+
+        Segue a mesma regra do construtor: modelo e compute da config valem, e o
+        preset só preenche o que estiver vazio. O modelo só é descarregado
+        quando o pedido muda; um fallback anterior (CUDA int8, CPU) não conta
+        como mudança. Retorna True quando um reload foi agendado.
+        """
+        self.set_quality_preset(quality_preset)
+        p = resolve_preset(quality_preset)
+        model = model_size or p["model_size"]
+        compute = compute_type or p["compute_type"]
+        requested_device = self._requested[1]
+        if (model, requested_device, compute) == self._requested:
+            return False
+        self._requested = (model, requested_device, compute)
+        self._model_size = model
+        self._device = requested_device  # volta a tentar o dispositivo pedido
+        self._compute_type = compute
+        self.request_unload()  # recarrega na próxima job
+        return True
 
     def submit(self, job: TranscriptionJob) -> None:
         self._queue.put(job)

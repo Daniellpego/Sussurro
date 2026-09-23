@@ -17,6 +17,17 @@ Este arquivo registra as mudanças relevantes de cada versão. O formato segue [
 - Adicionada uma versão em inglês do README em `README.en.md`, com aviso sobre o SmartScreen nas duas versões.
 - As notas de cada release são extraídas deste CHANGELOG, e o workflow de release falha se a tag não corresponder à versão do pacote.
 
+### Corrigido
+
+- Comandos de pontuação falados não alteram mais frases comuns, como "ganhei dois pontos no jogo", "a vírgula está errada" ou "chegamos ao ponto final".
+- Frases iniciadas depois de "ponto final" ou "nova linha" recebem maiúscula.
+- A quebra de linha não se perde quando vem logo depois de um comando de pontuação.
+- Alterar qualquer ajuste não descarrega mais o modelo de transcrição; ele só é recarregado quando o modelo escolhido muda, e a escolha do modelo passa a valer sem reiniciar.
+- Imagens e arquivos copiados continuam na área de transferência depois do ditado.
+- Salvar um ajuste não apaga mais a opção de iniciar com o Windows criada pelo instalador, e a desinstalação remove essa entrada.
+- Microfones que aparecem em mais de uma API de áudio do Windows podem ser escolhidos sem erro de "microfone indisponível".
+- Textos dos Ajustes corrigidos: padrão da opção de abrir pronto para ditar, aviso de atualização e nome do modelo.
+
 ## [0.1.1] - 2026-09-01
 
 ### Corrigido

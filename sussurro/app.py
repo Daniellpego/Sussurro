@@ -54,6 +54,7 @@ class App(QObject):
         super().__init__()
         self._qt = qt_app
         self._cfg = Config.load()
+        self._sync_autostart_from_registry()
         # efeito vidro (acrílico Win11) — definido antes de criar qualquer janela
         from sussurro.ui.components.window_frame import set_glass
         set_glass(self._cfg.glass)
@@ -597,9 +598,14 @@ class App(QObject):
         )
 
         # 2) comandos de voz ("nova linha", pontuação por extenso) — antes do
-        # LLM pra modos com IA preservarem a estrutura
+        # LLM pra modos com IA preservarem a estrutura. Capitaliza de novo as
+        # frases que só passam a existir depois do "ponto final"/"nova linha".
         from sussurro.commands import apply_commands
-        text = apply_commands(text, self._cfg.voice_commands)
+        text = apply_commands(
+            text,
+            self._cfg.voice_commands,
+            capitalize=self._cfg.auto_capitalization,
+        )
 
         # 3) aprende sugestões de vocabulário (não adiciona sozinho)
         try:
@@ -825,9 +831,24 @@ class App(QObject):
     def _on_settings_changed(self) -> None:
         # aplica efeitos colaterais + propaga a config pra janela principal
         from sussurro.storage import autostart
-        autostart.set_enabled(self._cfg.autostart)
+        if not autostart.apply(self._cfg.autostart):
+            log.warning("não foi possível atualizar o início com o Windows")
         self._window.sync_from_config()
         self._on_config_changed()
+
+    def _sync_autostart_from_registry(self) -> None:
+        """Usa o registro como fonte da verdade do "Iniciar com o Windows".
+
+        O instalador pode criar a entrada sem passar pela config; sem isso o
+        toggle aparece desligado e o próximo ajuste salvo apagaria a entrada.
+        """
+        if sys.platform != "win32":
+            return
+        from sussurro.storage import autostart
+        enabled = autostart.is_enabled()
+        if enabled != self._cfg.autostart:
+            self._cfg.autostart = enabled
+            self._cfg.save()
 
     def _set_status(self, kind: str, msg: str) -> None:
         """Atualiza o status na janela e na bandeja juntos."""
@@ -953,12 +974,18 @@ class App(QObject):
     def _on_config_changed(self) -> None:
         # algumas configs aplicam imediatamente, outras precisam restart
         self._mode = self._cfg.default_mode
-        # idioma + preset de qualidade em runtime
+        # idioma, modelo e preset em runtime; só recarrega se o modelo mudou
         self._worker.set_language(self._cfg.language)
         try:
-            self._worker.set_quality_preset(self._cfg.quality_preset)
+            if self._worker.configure(
+                model_size=self._cfg.model_size,
+                compute_type=self._cfg.compute_type,
+                quality_preset=self._cfg.quality_preset,
+            ):
+                log.info("modelo Whisper será recarregado: %s (%s)",
+                         self._cfg.model_size, self._cfg.compute_type)
         except Exception:  # noqa: BLE001
-            pass
+            log.warning("não foi possível aplicar o modelo Whisper", exc_info=True)
         # LLM: keep_alive e permissão de autostart sob demanda
         self._llm_worker.set_keep_alive(self._cfg.ollama_keep_alive)
         self._llm_worker.set_allow_autostart(True)

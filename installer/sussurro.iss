@@ -88,3 +88,13 @@ Filename: "{app}\{#MyAppExeName}"; Description: "Abrir Sussurro agora"; \
 ; Os dados do usuário persistidos em %APPDATA%\Sussurro (histórico de ditados, dicionário personalizado,
 ; macros PT-BR e modos configurados) são expressamente PRESERVADOS na desinstalação.
 ; Nenhum dado pessoal do usuário é apagado sem confirmação manual.
+
+[Code]
+// O app também cria a entrada de autostart (Ajustes > Iniciar com o Windows),
+// então ela é removida na desinstalação mesmo sem a tarefa do instalador.
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if CurUninstallStep = usPostUninstall then
+    RegDeleteValue(HKEY_CURRENT_USER,
+      'Software\Microsoft\Windows\CurrentVersion\Run', 'Sussurro');
+end;

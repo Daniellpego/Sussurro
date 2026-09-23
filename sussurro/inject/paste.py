@@ -287,6 +287,32 @@ def _restore_clipboard(previous: str | None, text: str) -> None:
         pass
 
 
+def _clipboard_has_non_text() -> bool:
+    """True quando o clipboard guarda algo que não é texto (imagem, arquivos).
+
+    O pyperclip só lê texto, então esse conteúdo não teria como ser
+    restaurado depois de usar o clipboard para colar.
+    """
+    if sys.platform != "win32":
+        return False
+    try:
+        import ctypes
+
+        user32 = ctypes.windll.user32
+        CF_UNICODETEXT = 13
+        return (user32.CountClipboardFormats() > 0
+                and not user32.IsClipboardFormatAvailable(CF_UNICODETEXT))
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _typing_first(chain: list[str]) -> list[str]:
+    """Põe "digitar" na frente, que não toca no clipboard."""
+    if "type" not in chain:
+        return chain
+    return ["type"] + [step for step in chain if step != "type"]
+
+
 def _try_chord(chord: str) -> bool:
     if _win_send_chord(chord):
         return True
@@ -337,10 +363,19 @@ def paste_text(
 
         previous: str | None = None
         if restore_clipboard:
-            try:
-                previous = pyperclip.paste()
-            except Exception:  # noqa: BLE001
-                previous = None
+            if _clipboard_has_non_text():
+                # imagem ou arquivos copiados: digitar preserva o clipboard
+                if "type" in chain:
+                    chain = _typing_first(chain)
+                    log.info("clipboard com conteúdo não textual — digitando")
+                else:
+                    log.warning("clipboard com conteúdo não textual será "
+                                "substituído (método %s sem fallback)", method)
+            else:
+                try:
+                    previous = pyperclip.paste()
+                except Exception:  # noqa: BLE001
+                    previous = None
 
         last_err = ""
         for step in chain:
