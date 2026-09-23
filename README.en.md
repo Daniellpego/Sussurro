@@ -1,29 +1,39 @@
+<div align="center">
+
+<img src="sussurro/assets/sussurro.png" alt="Sussurro icon" width="120">
+
 # Sussurro
 
-**English** · [Português](README.md)
+**Private, offline voice dictation for Windows.**<br>
+Hold a hotkey, speak, release: the text appears in the app you are using.
 
-Private, offline voice dictation for Windows. Hold a hotkey, speak, release, and the text is pasted into whatever app is in focus. Transcription runs on your machine with Whisper, and an optional local LLM through Ollama can clean up, formalize, summarize or translate what you said.
+[![CI](https://github.com/Daniellpego/Sussurro/actions/workflows/ci.yml/badge.svg)](https://github.com/Daniellpego/Sussurro/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Daniellpego/Sussurro?label=release)](https://github.com/Daniellpego/Sussurro/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/Daniellpego/Sussurro/total)](https://github.com/Daniellpego/Sussurro/releases)
+[![MIT license](https://img.shields.io/github/license/Daniellpego/Sussurro)](LICENSE)
 
-<p align="center">
-  <img src="sussurro/assets/sussurro.png" alt="Sussurro icon" width="160">
-</p>
+[Download](https://github.com/Daniellpego/Sussurro/releases/latest) ·
+[Usage](#usage) ·
+[Features](#features) ·
+[Development](#development) ·
+[Português](README.md)
 
-<p align="center">
-  <a href="https://github.com/Daniellpego/Sussurro/actions/workflows/ci.yml"><img src="https://github.com/Daniellpego/Sussurro/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/Daniellpego/Sussurro/releases/latest"><img src="https://img.shields.io/github/v/release/Daniellpego/Sussurro?label=release" alt="Latest release"></a>
-  <a href="https://github.com/Daniellpego/Sussurro/releases"><img src="https://img.shields.io/github/downloads/Daniellpego/Sussurro/total" alt="Downloads"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/Daniellpego/Sussurro" alt="MIT license"></a>
-</p>
+<br>
 
-<!-- Demo: add a short GIF here (hold Ctrl+Win → speak → text appears), e.g. docs/demo.gif -->
+<img src="docs/images/janela-principal.png" alt="Sussurro main window" width="340">
+&nbsp;&nbsp;
+<img src="docs/images/historico.png" alt="Transcription history" width="430">
+
+</div>
+
+> The interface and the voice commands are in Brazilian Portuguese. Whisper itself supports many languages: set `language` in `%APPDATA%\Sussurro\config.toml` to a code such as `en`, or to `auto`.
 
 ## Why Sussurro
 
 - **Nothing leaves your computer.** Audio, transcripts and history stay local. There is no account, subscription or cloud transcription service.
 - **Works in any app.** The text is pasted into the focused window, and your clipboard is restored afterwards.
-- **Fast on ordinary hardware.** It uses `faster-whisper` with the `large-v3-turbo` model on CPU or NVIDIA GPU, with automatic fallback to CPU. The model is warmed up before the hotkey is enabled, and partial text streams into the HUD during longer recordings.
-- **Rewrites with a local LLM when you want it.** Clean, formal, summary and translation modes run through Ollama on `127.0.0.1`, and you can create your own modes with editable instructions.
-- **Built for Brazilian Portuguese.** Spoken punctuation and paragraph commands, a personal dictionary, macros, and formatting for CPF, CNPJ and Brazilian court case numbers.
+- **Built for Brazilian Portuguese.** Spoken punctuation, a personal dictionary, and macros for spelled-out acronyms such as “esse tê efe” → STF and “ce pê éfe” → CPF.
+- **Optional local AI rewriting.** Modes that clean up, formalize, summarize or translate the text run through Ollama, also on your machine.
 
 ## Sussurro compared with cloud dictation
 
@@ -33,81 +43,78 @@ Private, offline voice dictation for Windows. Hold a hotkey, speak, release, and
 | Price | Free, MIT licensed | Usually a monthly subscription |
 | Works offline after setup | Yes | No |
 | AI rewriting | Local model through Ollama, optional | Provider's cloud model |
-| Custom rewrite modes | Yes, editable prompts | Varies |
 | Source code | Open | Closed |
 
 ## Install
 
 Download an installer from the [latest release](https://github.com/Daniellpego/Sussurro/releases/latest):
 
-- `SussurroSetup-CPU.exe` runs without a dedicated GPU.
-- `SussurroSetup-CUDA.exe` uses a compatible NVIDIA GPU to speed up transcription.
+| Installer | For |
+|---|---|
+| `SussurroSetup-CPU.exe` | Any computer, no graphics card needed |
+| `SussurroSetup-CUDA.exe` | Computers with an NVIDIA GPU, for faster transcription |
 
-Each release includes `checksums-sha256.txt`. To verify an installer in PowerShell:
+On first run Sussurro downloads the transcription model and, if you want, installs Ollama and the rewriting model. After that everything works offline.
+
+<details>
+<summary><b>Verifying the installer and the SmartScreen warning</b></summary>
+
+<br>
+
+Each release includes `checksums-sha256.txt`. In PowerShell:
 
 ```powershell
 Get-FileHash .\SussurroSetup-CPU.exe -Algorithm SHA256
 ```
 
-Compare the result with the matching line in the checksums file for the same release.
+Compare the result with the matching line in the checksums file.
 
-### Windows SmartScreen warning
+The installers are not code-signed yet, so Windows may show “Windows protected your PC”. If the checksum matches, click **More info** and then **Run anyway**. The installers are built by the public [`release.yml`](.github/workflows/release.yml) workflow.
 
-The installers are not code-signed yet, so Windows may show "Windows protected your PC" the first time you run one. Verify the SHA-256 checksum as described above and, if it matches, click **More info** and then **Run anyway**. The source code and the build pipeline that produces the installers are in this repository, in [`.github/workflows/release.yml`](.github/workflows/release.yml).
+</details>
 
 ## Usage
 
-1. Start Sussurro.
-2. Hold `Ctrl+Win` while you speak. A side mouse button can be used instead.
-3. Release the keys. The text is transcribed and pasted into the active window.
+1. Start Sussurro. It lives in the system tray.
+2. Hold <kbd>Ctrl</kbd> + <kbd>Win</kbd> while you speak. A side mouse button can be used instead.
+3. Release the keys. The text is transcribed and pasted at the cursor.
 
-The system tray menu lets you switch the writing mode, open the history, pause capture and open the settings. Sussurro can also pick the mode automatically based on the app in focus.
+<p align="center">
+  <img src="docs/images/hud-gravando.png" alt="Recording indicator" height="56">
+  &nbsp;
+  <img src="docs/images/hud-colado.png" alt="Text pasted" height="52">
+</p>
 
-## Language
-
-The interface and the spoken commands are in Brazilian Portuguese, and the default transcription language is `pt`. Whisper itself supports many languages: set `language` in `%APPDATA%\Sussurro\config.toml` to another code such as `en`, or to `auto` for automatic detection. Help translating the interface and adding voice commands for other languages is welcome.
+Writing modes decide what happens to the text before it is pasted: Raw (verbatim), Clean, Email, Corporate email, Bullets, Prompt, Code, Translate (Portuguese → English), and templates for radiology reports (BI-RADS) and legal petitions. AI modes need Ollama. You can edit them and create your own.
 
 ## Features
 
 - Local transcription with `faster-whisper` and Whisper `large-v3-turbo`.
-- CPU or NVIDIA GPU execution with automatic fallback to CPU.
-- Spoken punctuation and paragraph commands in Portuguese.
-- Personal dictionary, macros, and CPF, CNPJ and case number formatting.
-- Local rewrite modes through Ollama, including clean text, formal, summary and translation.
-- Custom modes with editable instructions.
-- Automatic mode selection based on the focused app (optional).
-- Searchable local history, capped at 500 entries.
-- Global hotkey and side mouse button support.
-- Paste into the active window with clipboard restoration.
-- Per-step latency metrics written locally to `latency.jsonl`.
+- NVIDIA GPU with automatic fallback to CPU.
+- Live preview in the indicator during longer recordings.
+- Personal dictionary with suggested terms, and acronym macros (STF, STJ, OAB, CPF, CNPJ, RG).
+- Searchable history of up to 500 transcriptions.
+- Pasting that preserves the clipboard, including copied images and files.
+- Start with Windows, light and dark themes, optional feedback sounds.
 
 ## Requirements
 
 - Windows 10 build 19041 or later, or Windows 11.
-- 8 GB of RAM for the CPU variant. 16 GB is recommended for larger models and Ollama.
+- 8 GB of RAM for the CPU variant; 16 GB recommended for the AI modes.
 - A built-in or USB microphone.
 - A CUDA-compatible NVIDIA GPU, only for the CUDA variant.
 
-Models are downloaded on first use, so an internet connection is needed during initial setup. After that, transcription and local rewriting work without sending dictated content to any server.
-
 ## Development
 
-Sussurro uses Python 3.11 or 3.12 (the NumPy 1.x release its audio dependencies use has no Python 3.13 packages). In Windows PowerShell:
+Sussurro uses Python 3.11 or 3.12. In PowerShell:
 
 ```powershell
 git clone https://github.com/Daniellpego/Sussurro.git
 cd Sussurro
 py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements-dev.txt
+pip install -r requirements-dev.txt   # plus requirements-gpu.txt for NVIDIA
 python -m sussurro
-```
-
-To also install the NVIDIA dependencies:
-
-```powershell
-pip install -r requirements-gpu.txt
 ```
 
 Before sending a change:
@@ -118,20 +125,12 @@ python scripts/validate_all.py
 pytest
 ```
 
-To measure transcription latency on your hardware with a WAV recording:
-
-```powershell
-python scripts/benchmark_latency.py sample.wav --device cpu
-```
-
-## Architecture
-
-The app separates audio capture, transcription, post-processing, local LLM rewriting, storage and UI. The flow and each module's responsibilities are described in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (in Portuguese).
+The architecture is described in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and the helper scripts in [scripts/README.md](scripts/README.md) (both in Portuguese).
 
 ## Contributing
 
-Bug reports and pull requests are welcome, in English or Portuguese. Read [CONTRIBUTING.md](CONTRIBUTING.md) before you start. Report vulnerabilities privately as described in the [security policy](SECURITY.md).
+Bug reports, suggestions and pull requests are welcome, in English or Portuguese. Read [CONTRIBUTING.md](CONTRIBUTING.md) before you start, and report vulnerabilities privately as described in the [security policy](SECURITY.md).
 
 ## License
 
-Sussurro is released under the [MIT license](LICENSE). Licenses for the dependencies bundled in the installers are listed in [docs/THIRD_PARTY_LICENSES.md](docs/THIRD_PARTY_LICENSES.md).
+Released under the [MIT license](LICENSE). Licenses for the components bundled in the installers are listed in [docs/THIRD_PARTY_LICENSES.md](docs/THIRD_PARTY_LICENSES.md).

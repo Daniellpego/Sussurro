@@ -1,97 +1,113 @@
-"""Captura screenshots de cada pagina sem iniciar o backend ASR.
+"""Gera capturas das janelas reais do Sussurro, sem carregar o modelo.
 
-Util pra comparar com o design Stitch sem esperar 6s de model load.
+Usa uma pasta de dados temporária com histórico de exemplo, então não toca
+na configuração de quem roda o script.
+
+Uso:
+    python scripts/screenshot_pages.py                  # salva em scratch/
+    python scripts/screenshot_pages.py --out docs/images --theme dark
 """
 from __future__ import annotations
 
+import argparse
+import os
 import sys
+import tempfile
+import time
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 
-from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QApplication
+_SAMPLES = (
+    ("Preciso que você revise o documento de especificações técnicas do novo "
+     "sistema de autenticação até amanhã cedo.", "raw", 4.2, 120),
+    ("Olá equipe, segue o resumo da reunião de planejamento da próxima sprint. "
+     "Os principais pontos foram o alinhamento de prioridades e a definição "
+     "de responsáveis.", "email", 8.6, 3600 * 22),
+    ("Lembrar de enviar a petição ao cliente e confirmar a audiência de "
+     "quinta-feira.", "clean", 5.3, 3600 * 27),
+)
 
-from sussurro.storage.config import Config
-from sussurro.storage.history import History, HistoryEntry
-from sussurro.ui.window import MainWindow
+
+def _pump(app, seconds: float) -> None:
+    end = time.monotonic() + seconds
+    while time.monotonic() < end:
+        app.processEvents()
+        time.sleep(0.01)
 
 
-def _seed_history(history: History) -> None:
-    if history.all():
-        return
-    import time
-    samples = [
-        (
-            "Preciso que você revise o documento de especificações técnicas do "
-            "novo sistema de autenticação até amanhã cedo.", "raw", 4.2,
-            time.time() - 120,
-        ),
-        (
-            "Olá equipe, segue o resumo da nossa reunião de planejamento para a "
-            "próxima sprint. Os principais pontos discutidos foram alinhamento "
-            "de prioridades e definição de owners.", "email", 8.6,
-            time.time() - 3600 * 22,
-        ),
-        (
-            "def calculate_total_revenue(sales_data, tax_rate):\n"
-            "    return sum(item.price for item in sales_data) * (1 + tax_rate)",
-            "code", 6.1, time.time() - 3600 * 27,
-        ),
-    ]
-    for text, mode, dur_a, ts in samples:
-        history.append(HistoryEntry(
-            timestamp=ts,
-            mode=mode,
-            text=text,
-            duration_audio=dur_a,
-            duration_infer=0.5,
-            language="pt",
-        ))
+def _save(widget, app, path: Path) -> None:
+    _pump(app, 0.35)
+    widget.grab().save(str(path))
+    print(f"saved {path.relative_to(ROOT) if path.is_relative_to(ROOT) else path}")
 
 
 def main() -> int:
-    qt = QApplication(sys.argv)
-    qt.setStyle("Fusion")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--out", type=Path, default=ROOT / "scratch")
+    parser.add_argument("--theme", choices=("dark", "light"), default="dark")
+    args = parser.parse_args()
+    out = args.out if args.out.is_absolute() else Path.cwd() / args.out
+    out.mkdir(parents=True, exist_ok=True)
+
+    # dados isolados: nada do usuário é lido nem alterado
+    os.environ["APPDATA"] = tempfile.mkdtemp(prefix="sussurro-shots-")
+
+    from PySide6.QtWidgets import QApplication
+
+    app = QApplication(sys.argv)
+    from sussurro.ui import fonts, theme
+    fonts.load_fonts()
+    theme.set_theme(args.theme)
+    app.setStyleSheet(theme.app_base_qss())
+
+    from sussurro.llm.modes import ModeStore
+    from sussurro.storage.config import Config
+    from sussurro.storage.dictionary import Dictionary
+    from sussurro.storage.history import History, HistoryEntry
+    from sussurro.ui.history_ui import HistoryWindow
+    from sussurro.ui.overlay import Overlay
+    from sussurro.ui.settings_ui import SettingsWindow
+    from sussurro.ui.window import MainWindow
 
     cfg = Config.load()
-    cfg.window_w = 920
-    cfg.window_h = 620
+    cfg.first_run_done = True
     history = History()
-    _seed_history(history)
+    now = time.time()
+    # do mais antigo para o mais novo, como no uso real
+    for text, mode, duration, age in sorted(_SAMPLES, key=lambda x: -x[3]):
+        history.append(HistoryEntry(
+            timestamp=now - age, mode=mode, text=text,
+            duration_audio=duration, duration_infer=0.6, language="pt"))
+    store = ModeStore.load()
 
-    win = MainWindow(cfg, history)
-    win.show()
-    win.raise_()
+    main_win = MainWindow(cfg, history, store)
+    main_win.set_status("ready", f"pronto · {cfg.hotkey_label}")
+    main_win.show()
+    _save(main_win, app, out / "janela-principal.png")
+    main_win.hide()
 
-    out_dir = Path("scratch")
-    out_dir.mkdir(exist_ok=True)
+    hist_win = HistoryWindow(history)
+    hist_win.show()
+    _save(hist_win, app, out / "historico.png")
+    hist_win.hide()
 
-    pages = ["home", "history", "modes", "settings", "about"]
-    captured: list[str] = []
+    settings = SettingsWindow(cfg, store, active_mode_getter=lambda: "raw",
+                              dictionary=Dictionary())
+    settings.show()
+    for key in ("geral", "modelos", "modos", "dicionario"):
+        settings._select_tab(key)  # noqa: SLF001
+        _save(settings, app, out / f"ajustes-{key}.png")
+    settings.hide()
 
-    def capture_next() -> None:
-        if not pages:
-            qt.quit()
-            return
-        page = pages.pop(0)
-        win.go_to(page)
-        QTimer.singleShot(450, lambda p=page: do_grab(p))
-
-    def do_grab(page: str) -> None:
-        pix = win.grab()
-        path = out_dir / f"app-{page}.png"
-        pix.save(str(path))
-        captured.append(str(path))
-        print(f"saved {path}")
-        QTimer.singleShot(150, capture_next)
-
-    QTimer.singleShot(500, capture_next)
-
-    qt.exec()
-    print(f"---{len(captured)} screenshots---")
-    for p in captured:
-        print(p)
+    overlay = Overlay(level_source=lambda: 0.55)
+    overlay.show_recording("raw")
+    _pump(app, 1.2)
+    _save(overlay, app, out / "hud-gravando.png")
+    overlay.show_done(ok=True, mode="email")
+    _save(overlay, app, out / "hud-colado.png")
+    overlay.hide()
     return 0
 
 
