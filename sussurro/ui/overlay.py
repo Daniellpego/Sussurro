@@ -588,6 +588,15 @@ class Overlay(QWidget):
         if not self.isVisible():
             self._show_pill()
 
+    def dismiss_loading(self) -> None:
+        """Some com o "Carregando o modelo…" quando o modelo fica pronto.
+
+        O aviso não tem auto-hide; sem isso ele ficava na tela até o próximo
+        ditado substituí-lo.
+        """
+        if self._state == "loading" and self.isVisible():
+            self._fade_out()
+
     def set_mode(self, mode: str) -> None:
         self._mode = mode
         self._chip.set_mode(mode)
