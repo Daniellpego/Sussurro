@@ -16,6 +16,7 @@ Este arquivo registra as mudanças relevantes de cada versão. O formato segue [
 
 ### Corrigido
 
+- O aviso "Carregando o modelo…" ficava na tela depois que o modelo já estava pronto, até o próximo ditado.
 - Abrir o Sussurro com ele já aberto iniciava uma segunda instância, e as duas digitavam o mesmo texto com as letras embaralhadas. Agora o segundo clique só mostra a janela que já está aberta.
 
 ## [0.1.2] - 2026-09-23
