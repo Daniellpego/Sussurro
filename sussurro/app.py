@@ -460,6 +460,7 @@ class App(QObject):
     def _on_worker_ready(self) -> None:
         log.info("modelo carregado e aquecido")
         self._asr_ready = True
+        self._overlay.dismiss_loading()
         self._maybe_start_hotkeys()
         self._restart_idle()
         if self._asr_note:
