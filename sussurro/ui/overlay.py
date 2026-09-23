@@ -108,85 +108,84 @@ class _RingDot(_Anim):
 
 
 class _HudWaveform(_Anim):
-    """VU ao vivo com barras arredondadas e gradiente da marca.
+    """Onda de voz ao vivo no estilo da marca: poucas barras-cápsula simétricas.
 
-    Buffer scrolling do nível do mic: sobe rápido, cai suave. Barras centrais
-    mais altas (envelope gaussiano) = silhueta de "voz", não régua chata.
+    Cada barra fica no lugar e sobe e desce com o volume do microfone, com um
+    ritmo próprio (nada rola para o lado). A central é a mais alta, como no
+    logo. Em silêncio, as barras viram pontos que "respiram" devagar.
     """
 
+    _PROFILE = (0.42, 0.62, 0.8, 0.94, 1.0, 0.94, 0.8, 0.62, 0.42)
+
     def __init__(self, level_source: Callable[[], float] | None = None,
-                 n_bars: int = 32, parent=None) -> None:
+                 parent=None) -> None:
         super().__init__(parent)
         self._level = level_source
-        self._n = n_bars
-        self._bw = 2.2
-        self._gap = 2.0
-        self._buf = [0.0] * n_bars
-        self._phase = [i * 0.37 for i in range(n_bars)]  # micro-variação
-        w = n_bars * self._bw + (n_bars - 1) * self._gap
-        self.setFixedSize(math.ceil(w), 22)
+        self._n = len(self._PROFILE)
+        self._bw = 3.5
+        self._gap = 3.5
+        # ritmos diferentes por barra para o movimento parecer orgânico
+        self._speed = [5.1, 6.3, 4.4, 7.2, 5.6, 6.8, 4.9, 6.0, 5.4]
+        self._phase = [i * 1.13 for i in range(self._n)]
+        self._heights = [0.0] * self._n
+        self._voice = 0.0
+        w = self._n * self._bw + (self._n - 1) * self._gap
+        self.setFixedSize(math.ceil(w), 24)
+        self._timer.setInterval(16)  # 60 fps só enquanto grava
         self._timer.timeout.disconnect()
         self._timer.timeout.connect(self._frame)
 
     def start(self) -> None:
-        self._buf = [0.0] * self._n
+        self._heights = [0.0] * self._n
+        self._voice = 0.0
         super().start()
 
+    def _read_level(self) -> float:
+        if self._level is None:
+            return 0.0
+        try:
+            return max(0.0, min(1.0, float(self._level())))
+        except Exception:  # noqa: BLE001
+            return 0.0
+
     def _frame(self) -> None:
-        lvl = 0.0
-        if self._level is not None:
-            try:
-                lvl = max(0.0, min(1.0, float(self._level())))
-            except Exception:  # noqa: BLE001
-                lvl = 0.0
-        # realce perceptual + piso mínimo (HUD "vivo" mesmo em silêncio leve)
-        lvl = lvl ** 0.55
-        prev = self._buf[-1] if self._buf else 0.0
-        sm = lvl if lvl >= prev else max(lvl, prev * 0.72)
-        # piso animado sutil pra não virar linha morta
-        floor = 0.06 + 0.04 * math.sin(self._elapsed() * 2.4)
-        sm = max(sm, floor * 0.35) if sm < 0.08 else sm
-        self._buf = self._buf[1:] + [sm]
+        # realce perceptual e suavização: sobe rápido, desce devagar
+        target = self._read_level() ** 0.6
+        k = 0.45 if target > self._voice else 0.12
+        self._voice += (target - self._voice) * k
+
+        t = self._elapsed()
+        for i in range(self._n):
+            wobble = 0.7 + 0.3 * math.sin(t * self._speed[i] + self._phase[i])
+            goal = min(1.0, self._voice * 1.3 * self._PROFILE[i] * wobble)
+            cur = self._heights[i]
+            self._heights[i] = cur + (goal - cur) * (0.5 if goal > cur else 0.2)
         self.update()
 
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.setPen(Qt.PenStyle.NoPen)
+
+        # um único gradiente da marca atravessando a onda inteira
+        grad = QLinearGradient(0, 0, self.width(), 0)
+        grad.setColorAt(0.0, theme.qcolor(theme.BRAND_SWEEP[0]))
+        grad.setColorAt(0.5, theme.qcolor(theme.BRAND_SWEEP[2]))
+        grad.setColorAt(1.0, theme.qcolor(theme.BRAND_SWEEP[4]))
+        p.setBrush(grad)
+
         h = self.height()
         cy = h / 2
-        n = len(self._buf)
+        t = self._elapsed()
+        radius = self._bw / 2
         x = 0.0
-        t_global = self._elapsed()
-        for i, v in enumerate(self._buf):
-            # envelope central (voz "no meio")
-            mid = abs(i - (n - 1) / 2) / max(1, (n - 1) / 2)
-            env = 1.0 - 0.35 * (mid ** 1.6)
-            # micro-jitter pra parecer orgânico
-            jitter = 0.85 + 0.15 * math.sin(t_global * 6.0 + self._phase[i])
-            amp = max(0.04, min(1.0, v * env * jitter))
-            bar_h = 3.0 + amp * (h - 4)
-
-            # gradiente da marca ao longo do eixo X
-            t = i / max(1, n - 1)
-            # amostra o BRAND_SWEEP
-            sweep = theme.BRAND_SWEEP
-            pos = t * (len(sweep) - 1)
-            i0 = int(pos)
-            i1 = min(i0 + 1, len(sweep) - 1)
-            frac = pos - i0
-            c0 = theme.qcolor(sweep[i0])
-            c1 = theme.qcolor(sweep[i1])
-            col = QColor(
-                int(c0.red() + (c1.red() - c0.red()) * frac),
-                int(c0.green() + (c1.green() - c0.green()) * frac),
-                int(c0.blue() + (c1.blue() - c0.blue()) * frac),
-            )
-            # opacidade sobe com volume
-            col.setAlphaF(0.45 + 0.55 * amp)
-            p.setBrush(col)
-            p.drawRoundedRect(
-                QRectF(x, cy - bar_h / 2, self._bw, bar_h), 1.1, 1.1)
+        for i, amp in enumerate(self._heights):
+            # respiração discreta em silêncio: pontos que crescem em onda
+            breath = 0.5 + 0.5 * math.sin(t * 2.6 - i * 0.55)
+            idle = self._bw + 1.6 * breath * (1.0 - min(1.0, self._voice * 4))
+            bar_h = max(idle, self._bw + amp * (h - self._bw))
+            p.drawRoundedRect(QRectF(x, cy - bar_h / 2, self._bw, bar_h),
+                              radius, radius)
             x += self._bw + self._gap
 
 
@@ -692,7 +691,11 @@ class Overlay(QWidget):
         pal = theme.palette()
         self._txt(self._timer_lbl, f"{elapsed // 60}:{elapsed % 60:02d}",
                   pal.text_tertiary, size=11, mono=True)
-        self._content.adjustSize()
+        # só a largura pode crescer (ex.: 9:59 -> 10:00); a altura fica a da
+        # pílula. adjustSize() encolhia o conteúdo para a altura natural,
+        # colado no topo, e tudo subia ~11 px depois do primeiro segundo.
+        width = max(self._content.width(), self._content.sizeHint().width())
+        self._content.resize(width, self._pill_h)
 
     # ------------------------------------------------------------------- fade
 

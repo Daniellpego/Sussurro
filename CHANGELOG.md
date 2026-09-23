@@ -4,6 +4,14 @@ Este arquivo registra as mudanças relevantes de cada versão. O formato segue [
 
 ## [Não lançado]
 
+### Alterado
+
+- Nova onda de voz no indicador de gravação: nove barras arredondadas e simétricas, no estilo do logo, que sobem e descem com a voz sem rolar para o lado, com um gradiente único e animação a 60 fps. Em silêncio, viram pontos que respiram devagar.
+
+### Corrigido
+
+- O conteúdo do indicador de gravação ficava desalinhado para cima depois do primeiro segundo.
+
 ## [0.1.2] - 2026-09-23
 
 ### Adicionado
