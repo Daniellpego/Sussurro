@@ -136,7 +136,7 @@ _DEFAULT_PROMPTS: dict[str, str] = {
 
 # (id, nome, descricao, cor-curada, glyph)
 _BUILTIN_META: tuple[tuple[str, str, str, str, str], ...] = (
-    ("raw",             "Raw",             "Texto verbatim, sem IA",                          "slate",   "~"),
+    ("raw",             "Raw",             "Sem IA; aplica dicionário e comandos",            "slate",   "~"),
     ("clean",           "Clean",           "Remove vícios e corrige a gramática",               "green",   "✓"),
     ("email",           "Email",           "Reescreve como e-mail profissional",               "blue",    "@"),
     ("bullets",         "Bullets",         "Pontos-chave em lista",                           "amber",   "≡"),
@@ -255,6 +255,9 @@ class ModeStore:
         upgraded = False
         for m in modes:
             m.builtin = m.id in builtin_ids
+            if m.id == "raw" and m.description == "Texto verbatim, sem IA":
+                m.description = "Sem IA; aplica dicionário e comandos"
+                upgraded = True
             # Built-ins com prompt "de fábrica" antigo (sem as regras de
             # acentuação/code-switch) sobem pro default novo. Prompt custom
             # do usuário (qualquer coisa sem o marcador velho exato) fica.
