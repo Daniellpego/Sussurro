@@ -7,15 +7,15 @@
 ;   2. Inno Setup 6 instalado (ISCC.exe)
 ;
 ; Build do installer:
-;   ISCC.exe /DMyAppVersion=0.1.0 /DAppVariant=CPU installer\sussurro.iss
-;   ISCC.exe /DMyAppVersion=0.1.0 /DAppVariant=CUDA installer\sussurro.iss
+;   ISCC.exe /DMyAppVersion=0.1.1 /DAppVariant=CPU installer\sussurro.iss
+;   ISCC.exe /DMyAppVersion=0.1.1 /DAppVariant=CUDA installer\sussurro.iss
 ;
 ; Saida:
 ;   installer\out\SussurroSetup-CPU.exe ou SussurroSetup-CUDA.exe
 
 #define MyAppName "Sussurro"
 #ifndef MyAppVersion
-  #define MyAppVersion "0.1.0"
+  #define MyAppVersion "0.1.1"
 #endif
 #ifndef AppVariant
   #define AppVariant "CPU"
@@ -65,6 +65,7 @@ Source: "..\dist\Sussurro\Sussurro.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\dist\Sussurro\_internal\*"; DestDir: "{app}\_internal"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Documentação e Licenças
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\README.pt-BR.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\docs\THIRD_PARTY_LICENSES.md"; DestDir: "{app}"; Flags: ignoreversion
 

@@ -1,14 +1,13 @@
-# Arquitetura do Instalador Unificado One-Click (SUSURRO + Ollama)
+# Arquitetura do Instalador Unificado One-Click (Sussurro + Ollama)
 
 **Data do documento:** 2026-08-31  
 **Status:** Planejamento Arquitetural (Bloco E do Roadmap)  
-**Autor:** Engenheiro de Software Sênior / Auditor de Repositórios
 
 ---
 
 ## 1. Visão Geral e Objetivos
 
-O objetivo do instalador *One-Click* é permitir que qualquer usuário no Windows instale e configure o SUSURRO sem necessidade de linha de comando, instalação manual de Python, CUDA, Git ou Ollama. O executável instalador entrega uma experiência pronta para uso (*out-of-the-box*) com aceleração por hardware e LLM local.
+O objetivo do instalador *One-Click* é permitir que qualquer usuário no Windows instale e configure o Sussurro sem necessidade de linha de comando, instalação manual de Python, CUDA, Git ou Ollama. O executável instalador entrega uma experiência pronta para uso (*out-of-the-box*) com aceleração por hardware e LLM local.
 
 ---
 
@@ -18,7 +17,7 @@ A solução é composta por 4 camadas de software:
 
 ```
 +-------------------------------------------------------------------+
-|                        SUSURRO GUI & Core                         |
+|                        Sussurro GUI & Core                         |
 |  (Executável PyInstaller / Standalone com PySide6 + Dependências)  |
 +-------------------------------------------------------------------+
 |                    Engine ASR (faster-whisper)                    |
@@ -33,7 +32,7 @@ A solução é composta por 4 camadas de software:
 ```
 
 ### Componentes detalhados:
-1. **SUSURRO Core:**
+1. **Sussurro Core:**
    * Binário gerado via PyInstaller (`sussurro.spec`) contendo o interpretador Python 3.11 embedado, PySide6, sounddevice, pyperclip e hotkeys.
 2. **ASR Runtime (faster-whisper / CTranslate2):**
    * DLLs essenciais de CUDA (`cublas64_12.dll`, `cudnn64_9.dll`, etc.) carregadas via `sussurro/cuda_setup.py`.
@@ -64,7 +63,7 @@ A solução é composta por 4 camadas de software:
 
 | Software | Licença | Termos de Redistribuição | Risco / Conformidade |
 |---|---|---|---|
-| **SUSURRO** | MIT License | Copyright (c) 2026 Susurro Oficial | Totalmente livre |
+| **Sussurro** | MIT License | Copyright (c) 2026 Susurro Oficial | Totalmente livre |
 | **Ollama** | MIT License | Permite redistribuição comercial e não-comercial, com inclusão do aviso de copyright | Baixo risco; basta manter o arquivo `LICENSE` do Ollama no pacote |
 | **CTranslate2 / Faster-Whisper** | MIT License | Permite redistribuição de binários e bibliotecas | Baixo risco |
 | **Qwen 2.5 (Pesos GGUF)** | Apache 2.0 / Qwen Community License | Permite uso comercial e redistribuição gratuita de pesos/quantizações | Baixo risco; requer atribuição padrão da Alibaba Cloud / Qwen |
