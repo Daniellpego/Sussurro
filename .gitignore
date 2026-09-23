@@ -32,6 +32,7 @@ scratch/
 *.flac
 *.ogg
 !tests/fixtures/*.wav
+!sussurro/assets/sounds/*.wav
 
 # Logs e diagnósticos locais
 *.log
@@ -44,9 +45,11 @@ logs/
 !.env.example
 *.local.toml
 
-# Fontes locais não distribuídas pelo repositório
+# Fontes locais não distribuídas pelo repositório (as Geist, OFL, são versionadas)
 sussurro/assets/fonts/*.ttf
 sussurro/assets/fonts/*.otf
+!sussurro/assets/fonts/Geist.ttf
+!sussurro/assets/fonts/GeistMono.ttf
 
 # Editores
 .vscode/

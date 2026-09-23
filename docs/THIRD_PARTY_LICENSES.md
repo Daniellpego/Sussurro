@@ -46,7 +46,14 @@ Esta aplicação incorpora, empacota ou interage com as seguintes tecnologias e 
 
 ---
 
-## 6. NVIDIA CUDA Runtime & cuDNN (Variante GPU)
+## 6. Fontes Geist e Geist Mono
+- **Autor / Mantenedor:** Vercel, em colaboração com basement.studio
+- **Licença:** SIL Open Font License 1.1 (texto completo em `sussurro/assets/fonts/OFL.txt`, incluído no instalador)
+- **Descrição:** Fontes da interface, empacotadas sem modificação a partir do pacote npm `geist` 1.7.2.
+
+---
+
+## 7. NVIDIA CUDA Runtime & cuDNN (Variante GPU)
 - **Autor / Mantenedor:** NVIDIA Corporation
 - **Licença:** NVIDIA Software License Agreement (Redistributable Runtime Libraries)
 - **Descrição:** DLLs redistribuíveis do runtime CUDA 12 e cuBLAS/cuDNN empacotadas na variante GPU para aceleração por hardware em GPUs NVIDIA GeForce / RTX.
