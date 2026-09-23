@@ -45,6 +45,9 @@ Este arquivo registra as mudanças relevantes de cada versão. O formato segue [
 - Modelo de IA não baixado aparece como tal no HUD e numa notificação, em vez de "erro na IA".
 - A janela principal não abre mais fora da tela depois que um monitor é desconectado.
 - Atualizar ou trocar entre as variantes CPU e CUDA remove os arquivos da instalação anterior.
+- As abas dos Ajustes rolam: em telas baixas, os cards de Modos se sobrepunham e a seção Desempenho ficava espremida.
+- Notas longas dos Ajustes quebram linha em vez de serem cortadas.
+- Transcrições longas no Histórico mostram duas linhas com reticências em vez de cobrir o chip do modo.
 
 ## [0.1.1] - 2026-09-01
 
