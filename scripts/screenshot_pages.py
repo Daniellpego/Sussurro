@@ -101,6 +101,35 @@ def main() -> int:
         _save(settings, app, out / f"ajustes-{key}.png")
     settings.hide()
 
+    # assistente de primeira execução, com um microfone falso
+    import math
+
+    import sussurro.ui.onboarding as onboarding
+
+    class _FakeRecorder:
+        level = 0.4
+
+        def __init__(self, *args, **kwargs) -> None:
+            pass
+
+        def start(self) -> None:
+            pass
+
+        def stop(self) -> None:
+            pass
+
+        def recent_levels(self, n: int) -> list[float]:
+            return [0.25 + 0.35 * abs(math.sin(i * 0.7)) for i in range(n)]
+
+    onboarding.Recorder = _FakeRecorder
+    wizard = onboarding.OnboardingWizard()
+    wizard.show()
+    for step in range(1, 4):
+        _save(wizard, app, out / f"boas-vindas-{step}.png")
+        if step < 3:
+            wizard._next()  # noqa: SLF001
+    wizard.hide()
+
     overlay = Overlay(level_source=lambda: 0.55)
     overlay.show_recording("raw")
     _pump(app, 1.2)

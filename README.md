@@ -44,6 +44,12 @@ Baixe o instalador na página da [versão mais recente](https://github.com/Danie
 
 Na primeira execução, o Sussurro baixa o modelo de transcrição e, se você quiser, instala o Ollama e o modelo de revisão. Depois disso, tudo funciona sem internet.
 
+<p align="center">
+  <img src="docs/images/boas-vindas-1.png" alt="Boas-vindas" width="230">
+  <img src="docs/images/boas-vindas-2.png" alt="Teste do microfone" width="230">
+  <img src="docs/images/boas-vindas-3.png" alt="Atalho de gravação" width="230">
+</p>
+
 <details>
 <summary><b>Conferir o instalador e o aviso do SmartScreen</b></summary>
 

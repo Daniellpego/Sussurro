@@ -147,9 +147,12 @@ class ValueRow(_Row):
     clicked = Signal()
 
     def __init__(self, label: str, value: str = "", dot_color: str | None = None,
-                 parent: QWidget | None = None) -> None:
-        super().__init__(pad_v=13, hover=True, parent=parent)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
+                 parent: QWidget | None = None, *, interactive: bool = True) -> None:
+        # interactive=False: só exibe o valor (sem chevron, hover ou clique)
+        super().__init__(pad_v=13, hover=interactive, parent=parent)
+        self._interactive = interactive
+        if interactive:
+            self.setCursor(Qt.CursorShape.PointingHandCursor)
 
         self._label = QLabel(label)
         self._label.setObjectName("RowLabel")
@@ -161,6 +164,7 @@ class ValueRow(_Row):
         self._lay.addWidget(self._value, 1)   # ocupa o meio + elide à direita
         self._chevron = Chevron()
         self._lay.addWidget(self._chevron, 0, Qt.AlignmentFlag.AlignVCenter)
+        self._chevron.setVisible(interactive)
         self.apply_theme()
 
     def set_value(self, value: str, dot_color: str | None = None) -> None:
@@ -177,7 +181,8 @@ class ValueRow(_Row):
             self._chevron.set_color(pal.text_tertiary)
 
     def mouseReleaseEvent(self, event) -> None:  # noqa: N802
-        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event.pos()):
+        if (self._interactive and event.button() == Qt.MouseButton.LeftButton
+                and self.rect().contains(event.pos())):
             self.clicked.emit()
 
 

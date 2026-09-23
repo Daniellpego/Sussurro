@@ -1,4 +1,4 @@
-"""Ícones de linha pra sidebar dos Ajustes — desenhados com QPainter (sem
+"""Ícones de linha da sidebar dos Ajustes e do menu da bandeja — desenhados com QPainter (sem
 dependência de font de ícones). Grade 24x24 estilo Lucide, traço arredondado,
 mapeada pro retângulo alvo. Cor única (branco/escuro conforme o tile).
 """
@@ -82,3 +82,39 @@ def paint(p: QPainter, key: str, rect: QRectF, color: QColor, stroke: float) -> 
         ring(12, 12, 8.5)
         dot(12, 8, 1.15)
         line(12, 11.5, 12, 16.5)
+
+    # --- ícones do menu da bandeja ---
+    elif key == "janela":  # janela do app
+        rrect(3.5, 5, 20.5, 19, 2.5)
+        line(3.5, 9.5, 20.5, 9.5)
+        dot(6.5, 7.25, 0.8)
+        dot(9, 7.25, 0.8)
+
+    elif key == "historico":  # relógio
+        ring(12, 12, 8.5)
+        line(12, 7.5, 12, 12)
+        line(12, 12, 15, 14)
+
+    elif key == "ajustes":  # engrenagem simplificada
+        ring(12, 12, 3)
+        for a, b, c, d in ((12, 3.5, 12, 6), (12, 18, 12, 20.5),
+                           (3.5, 12, 6, 12), (18, 12, 20.5, 12),
+                           (6, 6, 7.8, 7.8), (16.2, 16.2, 18, 18),
+                           (18, 6, 16.2, 7.8), (7.8, 16.2, 6, 18)):
+            line(a, b, c, d)
+        ring(12, 12, 6.5)
+
+    elif key == "pausar":  # pause
+        line(9, 6.5, 9, 17.5)
+        line(15, 6.5, 15, 17.5)
+
+    elif key == "retomar":  # play
+        path = QPainterPath(Pt(8, 5.5))
+        path.lineTo(Pt(18.5, 12))
+        path.lineTo(Pt(8, 18.5))
+        path.closeSubpath()
+        p.drawPath(path)
+
+    elif key == "sair":  # power
+        p.drawArc(QRectF(Pt(4.5, 5), Pt(19.5, 20)), 125 * 16, 290 * 16)
+        line(12, 3.5, 12, 11)

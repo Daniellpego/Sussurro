@@ -89,7 +89,7 @@ class SetupWindow(FramelessWindow):
         t.setFont(theme.qfont(18, theme.W_SEMIBOLD, tracking=theme.TRACK_TITLE))
         t.setStyleSheet(f"color: {pal.text_primary};")
         hc.addWidget(t)
-        s = QLabel("Configurando o que roda local. Só desta vez.")
+        s = QLabel("Baixando o que roda no seu computador. Só desta vez.")
         s.setFont(theme.qfont(13))
         s.setStyleSheet(f"color: {pal.text_secondary};")
         hc.addWidget(s)
@@ -214,7 +214,7 @@ class SetupWindow(FramelessWindow):
             f"color: {pal.text_tertiary}; background: transparent;")
         top.addWidget(self._ol_note)
 
-        self._ol_btn = kit.SecondaryButton("Instalar Automaticamente")
+        self._ol_btn = kit.SecondaryButton("Instalar")
         self._ol_btn.setVisible(False)
         # a ação do botão muda com o estado (instalar, iniciar, abrir o site)
         self._ol_action = self._install_ollama
@@ -235,11 +235,11 @@ class SetupWindow(FramelessWindow):
             name, gb = gpu
             self._gpu_check.set_state("ok")
             self._gpu_box._label.setText("GPU detectada")  # type: ignore[attr-defined]
-            self._gpu_val.setText(f"{name} · {gb} GB (Aceleração CUDA)")
+            self._gpu_val.setText(f"{name.removeprefix('NVIDIA ')} · {gb} GB")
         else:
             self._gpu_check.set_state("ok")
-            self._gpu_box._label.setText("Modo CPU")  # type: ignore[attr-defined]
-            self._gpu_val.setText("Whisper Turbo INT8 (Execução local)")
+            self._gpu_box._label.setText("Sem GPU NVIDIA")  # type: ignore[attr-defined]
+            self._gpu_val.setText("transcrição na CPU")
 
         # Whisper
         if setup_check.whisper_cached(self._cfg.model_size):
@@ -278,7 +278,7 @@ class SetupWindow(FramelessWindow):
         installed = running or setup_check.ollama_installed()
         if running:
             self._ol_check.set_state("ok")
-            self._ol_label.setText("Ollama rodando")
+            self._ol_label.setText("Ollama em execução")
             self._ol_note.setText("")
             self._ol_btn.setVisible(False)
             self._ol_bar.setVisible(False)
@@ -296,9 +296,9 @@ class SetupWindow(FramelessWindow):
         else:
             self._ol_check.set_state("wait")
             self._ol_label.setText("Ollama")
-            self._ol_note.setText("opcional para IA")
+            self._ol_note.setText("opcional, para os modos com IA")
             self._ol_action = self._install_ollama
-            self._ol_btn.setText("Instalar Automaticamente")
+            self._ol_btn.setText("Instalar")
             self._ol_btn.setEnabled(True)
             self._ol_btn.setVisible(True)
             self._ol_bar.setVisible(False)

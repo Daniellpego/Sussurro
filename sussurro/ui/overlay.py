@@ -581,7 +581,7 @@ class Overlay(QWidget):
         self._keep_visible()
         self._state = "transcribing"
         self._stop_anims()
-        self._txt(self._msg, "transcrevendo", theme.palette().text_secondary)
+        self._txt(self._msg, "Transcrevendo…", theme.palette().text_secondary)
         items: list = [self._dots]
         if mode and mode != "raw":
             self._chip.set_mode(mode)
@@ -597,7 +597,7 @@ class Overlay(QWidget):
         self._state = "processing"
         self._stop_anims()
         self._chip.set_mode(mode)
-        self._txt(self._msg, "refinando", theme.palette().text_secondary)
+        self._txt(self._msg, "Refinando…", theme.palette().text_secondary)
         self._apply([self._spin, self._chip, self._msg], pad_h=16, gap=10)
         self._spin.start()
         self._slow.start()
@@ -607,7 +607,7 @@ class Overlay(QWidget):
     def _on_processing_slow(self) -> None:
         if self._state != "processing":
             return
-        self._txt(self._msg, "carregando a IA…",
+        self._txt(self._msg, "Carregando a IA…",
                   theme.palette().text_secondary)
         self._apply_now([self._spin, self._chip, self._msg], pad_h=16, gap=10)
 
@@ -662,7 +662,9 @@ class Overlay(QWidget):
         self._state = "error"
         self._stop_anims()
         color = theme.palette().state_text(theme.ERROR)
-        self._txt(self._msg, message or "Erro · tente de novo", color)
+        text = message or "Erro · tente de novo"
+        text = text[:1].upper() + text[1:]  # mensagens do app vêm em minúsculas
+        self._txt(self._msg, text, color)
         self._apply([self._errb, self._msg], pad_h=16, gap=10, tint="red")
         if not self.isVisible():
             self._show_pill()
@@ -672,7 +674,7 @@ class Overlay(QWidget):
         self._keep_visible()
         self._state = "loading"
         self._stop_anims()
-        self._txt(self._msg, "aquecendo a GPU…", theme.palette().text_secondary)
+        self._txt(self._msg, "Carregando o modelo…", theme.palette().text_secondary)
         self._apply([self._spin, self._msg], pad_h=16, gap=11)
         self._spin.start()
         if not self.isVisible():

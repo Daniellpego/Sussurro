@@ -7,8 +7,7 @@ da aba "Modos" dos Ajustes. O editor reusa o FramelessWindow.
   modo ativo tem borda verde; último card = "Novo modo" tracejado.
 - Editor: header (tile 44 + nome + "ativo · usado N vezes" + toggle grande),
   Nome, Cor (7 swatches), Ícone (glyphs), Modelo, Instrução (+ restaurar padrão
-  só built-in), Atalho (DESABILITADO "em breve"), Pré-visualização (estática) e
-  footer (Cancelar / Salvar).
+  só built-in) e footer (Cancelar / Salvar).
 """
 from __future__ import annotations
 
@@ -33,6 +32,16 @@ from sussurro.ui.components.window_frame import FramelessWindow
 # ===========================================================================
 # Seletor de cor (7 swatches) e de ícone (glyphs)
 # ===========================================================================
+
+# altura dos cards: ícone + nome + descrição de até duas linhas
+_CARD_H = 126
+
+
+def _usage_label(count: int) -> str:
+    if count == 0:
+        return "ainda não usado"
+    return "usado 1 vez" if count == 1 else f"usado {count} vezes"
+
 
 class _Swatch(QWidget):
     picked = Signal(str)
@@ -190,11 +199,11 @@ class _ModeCard(QWidget):
         self.setObjectName("ModeCard")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setFixedHeight(110)
+        self.setFixedHeight(_CARD_H)
 
         lay = QVBoxLayout(self)
-        lay.setContentsMargins(14, 13, 14, 13)
-        lay.setSpacing(8)
+        lay.setContentsMargins(14, 12, 14, 12)
+        lay.setSpacing(6)
 
         top = QHBoxLayout()
         top.setContentsMargins(0, 0, 0, 0)
@@ -248,7 +257,7 @@ class _NewCard(QWidget):
         self.setObjectName("NewCard")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setFixedHeight(110)
+        self.setFixedHeight(_CARD_H)
         lay = QVBoxLayout(self)
         lay.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._lbl = QLabel("+  Novo modo")
@@ -289,7 +298,8 @@ class ModesManager(QWidget):
         self._store = store
         self._active_id = active_id
         self._lay = QVBoxLayout(self)
-        self._lay.setContentsMargins(20, 18, 20, 20)
+        # a aba dos Ajustes já aplica a margem da página
+        self._lay.setContentsMargins(0, 0, 0, 0)
         self._lay.setSpacing(16)
         self._build()
 
@@ -390,7 +400,7 @@ class ModeEditor(FramelessWindow):
         head_col.addWidget(self._head_name)
         meta = "ativo" if self._mode.active else "inativo"
         if not self._is_new:
-            meta += f" · usado {self._mode.usage_count} vezes"
+            meta += f" · {_usage_label(self._mode.usage_count)}"
         self._head_meta = QLabel(meta)
         self._head_meta.setFont(theme.qfont(12))
         self._head_meta.setStyleSheet(f"color: {pal.text_secondary};")
@@ -423,13 +433,14 @@ class ModeEditor(FramelessWindow):
         # --- Modelo ---
         c.addWidget(self._field_label("Modelo"))
         mcard = kit.GroupCard()
-        self._model_row = kit.ValueRow("LLM", DEFAULT_LLM_LABEL)
+        self._model_row = kit.ValueRow("Modelo de IA", DEFAULT_LLM_LABEL,
+                                       interactive=False)
         mcard.add_row(self._model_row)
         c.addWidget(mcard)
 
         # --- Instrução pro modelo ---
         instr_head = QHBoxLayout()
-        instr_head.addWidget(self._field_label("Instrução pro modelo"))
+        instr_head.addWidget(self._field_label("Instrução para a IA"))
         instr_head.addStretch(1)
         if self._mode.builtin:
             restore = kit.GhostButton("restaurar padrão", accent=True)
@@ -442,13 +453,7 @@ class ModeEditor(FramelessWindow):
         self._prompt.setFixedHeight(120)
         c.addWidget(self._prompt)
 
-        # --- Atalho direto (DESABILITADO / em breve) ---
-        c.addWidget(self._field_label("Atalho direto"))
-        c.addWidget(self._shortcut_field())
-
-        # --- Pré-visualização (estática) ---
-        c.addWidget(self._field_label("Pré-visualização"))
-        c.addWidget(self._preview())
+        c.addStretch(1)
 
         # --- footer (sticky) ---
         foot = QWidget()
@@ -495,86 +500,6 @@ class ModeEditor(FramelessWindow):
             f"color: {theme.palette().text_tertiary}; text-transform: uppercase;")
         return lbl
 
-    def _shortcut_field(self) -> QWidget:
-        pal = theme.palette()
-        w = QWidget()
-        w.setObjectName("ShortcutField")
-        w.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        w.setStyleSheet(f"""
-        QWidget#ShortcutField {{
-            background: transparent;
-            border: 1px dashed {pal.border_strong};
-            border-radius: {theme.RADIUS_INPUT}px;
-        }}
-        """)
-        lay = QHBoxLayout(w)
-        lay.setContentsMargins(12, 11, 12, 11)
-        lbl = QLabel("+ definir atalho")
-        lbl.setFont(theme.qfont(13))
-        lbl.setStyleSheet(f"color: {pal.text_tertiary}; background: transparent;")
-        lay.addWidget(lbl)
-        lay.addStretch(1)
-        badge = QLabel("em breve")
-        badge.setFont(theme.qfont(10, theme.W_SEMIBOLD, mono=True))
-        badge.setStyleSheet(
-            f"color: {pal.text_tertiary}; background: {pal.inset}; "
-            f"border-radius: 6px; padding: 3px 8px;")
-        lay.addWidget(badge)
-        w.setEnabled(False)
-        return w
-
-    def _preview(self) -> QWidget:
-        pal = theme.palette()
-        w = QWidget()
-        lay = QHBoxLayout(w)
-        lay.setContentsMargins(0, 0, 0, 0)
-        lay.setSpacing(10)
-
-        before = self._preview_box(
-            "Antes", "humm, então tipo, eu queria... eu queria revisar o "
-            "contrato, sabe?", pal.inset, pal.text_secondary, pal.border_subtle)
-        lay.addWidget(before, 1)
-
-        arrow = QLabel("→")
-        arrow.setFont(theme.qfont(16, theme.W_MEDIUM))
-        arrow.setStyleSheet(f"color: {pal.text_tertiary};")
-        lay.addWidget(arrow, 0, Qt.AlignmentFlag.AlignVCenter)
-
-        green = theme.mode_swatch("green", not pal.is_dark)
-        after = self._preview_box(
-            "Depois", "Eu queria revisar o contrato.",
-            theme.rgba(green, 0.10), pal.text_primary,
-            theme.rgba(green, 0.30))
-        lay.addWidget(after, 1)
-        return w
-
-    def _preview_box(self, tag: str, text: str, bg: str, fg: str,
-                     border: str) -> QWidget:
-        box = QWidget()
-        box.setObjectName("PreviewBox")
-        box.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        box.setStyleSheet(f"""
-        QWidget#PreviewBox {{
-            background: {bg};
-            border: 1px solid {border};
-            border-radius: 10px;
-        }}
-        """)
-        lay = QVBoxLayout(box)
-        lay.setContentsMargins(12, 10, 12, 12)
-        lay.setSpacing(6)
-        t = QLabel(tag.upper())
-        t.setFont(theme.qfont(10, theme.W_SEMIBOLD, mono=True))
-        t.setStyleSheet(
-            f"color: {theme.palette().text_tertiary}; background: transparent;")
-        lay.addWidget(t)
-        body = QLabel(text)
-        body.setFont(theme.qfont(12))
-        body.setStyleSheet(f"color: {fg}; background: transparent;")
-        body.setWordWrap(True)
-        lay.addWidget(body)
-        return box
-
     # --------------------------------------------------------------- signals
 
     def _on_name(self, text: str) -> None:
@@ -595,7 +520,7 @@ class ModeEditor(FramelessWindow):
         self._mode.active = v
         meta = "ativo" if v else "inativo"
         if not self._is_new:
-            meta += f" · usado {self._mode.usage_count} vezes"
+            meta += f" · {_usage_label(self._mode.usage_count)}"
         self._head_meta.setText(meta)
 
     def _restore_prompt(self) -> None:

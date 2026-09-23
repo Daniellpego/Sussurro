@@ -56,6 +56,12 @@ Download an installer from the [latest release](https://github.com/Daniellpego/S
 
 On first run Sussurro downloads the transcription model and, if you want, installs Ollama and the rewriting model. After that everything works offline.
 
+<p align="center">
+  <img src="docs/images/boas-vindas-1.png" alt="Welcome" width="230">
+  <img src="docs/images/boas-vindas-2.png" alt="Microphone test" width="230">
+  <img src="docs/images/boas-vindas-3.png" alt="Recording shortcut" width="230">
+</p>
+
 <details>
 <summary><b>Verifying the installer and the SmartScreen warning</b></summary>
 

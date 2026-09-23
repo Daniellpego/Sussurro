@@ -6,11 +6,21 @@ Este arquivo registra as mudanças relevantes de cada versão. O formato segue [
 
 ### Alterado
 
+- Janela principal mais compacta: mostra só Modo, Microfone e Idioma, além dos recentes, e cabe em telas de notebook. As demais opções ficam nos Ajustes.
+- Ajustes reorganizados: as abas Áudio e Atalhos viraram a aba Entrada, Idioma e Método de colagem passaram a estar nos Ajustes, e os itens marcados como "em breve" foram removidos.
+- Menu da bandeja com ícones e textos mais claros ("Pausar e liberar memória", "Retomar ditado").
+- Editor de modo sem o campo de atalho "em breve" e sem a pré-visualização fixa, que mostrava o mesmo exemplo para todos os modos.
+- A aba Sobre ganhou links para o código-fonte, as novidades e a pasta de dados.
+- Textos do indicador padronizados ("Transcrevendo…", "Carregando o modelo…").
 - Nova onda de voz no indicador de gravação: nove barras arredondadas e simétricas, no estilo do logo, que sobem e descem com a voz sem rolar para o lado, com um gradiente único e animação a 60 fps. Em silêncio, viram pontos que respiram devagar.
 
 ### Corrigido
 
 - O conteúdo do indicador de gravação ficava desalinhado para cima depois do primeiro segundo.
+- Os campos Microfone, Modo e Idioma da janela principal não se atualizavam quando alterados nos Ajustes.
+- Espaçamentos irregulares no topo da janela principal e no cabeçalho do menu da bandeja.
+- Cards de Modos cortavam a segunda linha da descrição.
+- O texto de ajuda do último passo das boas-vindas era cortado.
 
 ## [0.1.2] - 2026-09-23
 
