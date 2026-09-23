@@ -63,22 +63,26 @@ datas += collect_data_files("tokenizers")
 datas += collect_data_files("av")
 
 
-def _optional_data(path: str, dest: str) -> list[tuple[str, str]]:
-    """Inclui um asset se existir; ausência de asset cosmético não quebra build."""
-    return [(path, dest)] if Path(path).is_file() else []
+def _required_data(path: str, dest: str) -> list[tuple[str, str]]:
+    """Inclui um asset versionado; se faltar, o build falha em vez de sair incompleto."""
+    if not Path(path).is_file():
+        raise SystemExit(f"asset obrigatório ausente: {path}")
+    return [(path, dest)]
 
 
-# Assets essenciais + cosméticos opcionais
+# Assets versionados no repositório (fontes Geist sob OFL e sons gerados por
+# scripts/generate_sounds.py)
 for path, dest in (
     ("sussurro/assets/sussurro.ico", "sussurro/assets"),
     ("sussurro/assets/sussurro.png", "sussurro/assets"),
     ("sussurro/assets/chevron_down.png", "sussurro/assets"),
     ("sussurro/assets/fonts/Geist.ttf", "sussurro/assets/fonts"),
     ("sussurro/assets/fonts/GeistMono.ttf", "sussurro/assets/fonts"),
+    ("sussurro/assets/fonts/OFL.txt", "sussurro/assets/fonts"),
     ("sussurro/assets/sounds/start.wav", "sussurro/assets/sounds"),
     ("sussurro/assets/sounds/done.wav", "sussurro/assets/sounds"),
 ):
-    datas += _optional_data(path, dest)
+    datas += _required_data(path, dest)
 
 # CUDA bin dirs como datas (apenas se variant=cuda)
 if is_cuda:
