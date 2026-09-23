@@ -1082,6 +1082,14 @@ def run() -> int:
     qt.setApplicationName("Sussurro")
     qt.setOrganizationName("Sussurro")
     qt.setQuitOnLastWindowClosed(False)
+
+    # já aberto: só traz a janela da instância existente para frente
+    from sussurro.single_instance import SingleInstance
+    instance = SingleInstance()
+    if not instance.acquire():
+        log.info("Sussurro já está aberto; mostrando a janela existente")
+        instance.notify_running()
+        return 0
     from sussurro.ui.components import brand_icon
     qt.setWindowIcon(brand_icon())
     # Fusion respeita 100% do QSS (estilo nativo do Windows pinta gradients
@@ -1109,6 +1117,7 @@ def run() -> int:
         log.warning("system tray indisponivel — app vai rodar so com janela")
 
     app = App(qt)
+    instance.listen(app._show_window)
     app.start()
 
     # Ctrl+C no console -> shutdown gracioso
