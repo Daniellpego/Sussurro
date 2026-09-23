@@ -537,9 +537,8 @@ class App(QObject):
             audio=audio,
             mode=self._active_mode,
             request_id=self._active_request_id,
-            # estilo PT-BR + termos; hotwords = bias nativo do CTranslate2
+            # estilo PT-BR + termos, curto (ver dictionary.to_prompt)
             initial_prompt=self._dictionary.to_prompt(),
-            hotwords=self._dictionary.to_hotwords(),
         ))
         self._restart_idle()  # rearma o timer de ociosidade
 
