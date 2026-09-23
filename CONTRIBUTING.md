@@ -50,4 +50,5 @@ Use mensagens de commit curtas no imperativo. Os prefixos `feat:`, `fix:`, `docs
 
 1. Mova as entradas de `[Não lançado]` no `CHANGELOG.md` para uma nova seção `## [X.Y.Z] - AAAA-MM-DD` e atualize os links no fim do arquivo.
 2. Atualize a versão em `sussurro/__init__.py`, `pyproject.toml` e no valor padrão de `installer/sussurro.iss`.
-3. Crie e envie a tag `vX.Y.Z`. O workflow de release confere se a tag corresponde a `__version__` e usa a seção do CHANGELOG como notas da release.
+3. Confira a [lista de testes manuais](docs/TESTES-MANUAIS.md) num Windows real.
+4. Crie e envie a tag `vX.Y.Z`. O workflow de release confere se a tag corresponde a `__version__` e usa a seção do CHANGELOG como notas da release.

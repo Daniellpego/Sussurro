@@ -4,24 +4,6 @@ Este arquivo registra as mudanças relevantes de cada versão. O formato segue [
 
 ## [Não lançado]
 
-### Alterado
-
-- Janela principal mais compacta: mostra só Modo, Microfone e Idioma, além dos recentes, e cabe em telas de notebook. As demais opções ficam nos Ajustes.
-- Ajustes reorganizados: as abas Áudio e Atalhos viraram a aba Entrada, Idioma e Método de colagem passaram a estar nos Ajustes, e os itens marcados como "em breve" foram removidos.
-- Menu da bandeja com ícones e textos mais claros ("Pausar e liberar memória", "Retomar ditado").
-- Editor de modo sem o campo de atalho "em breve" e sem a pré-visualização fixa, que mostrava o mesmo exemplo para todos os modos.
-- A aba Sobre ganhou links para o código-fonte, as novidades e a pasta de dados.
-- Textos do indicador padronizados ("Transcrevendo…", "Carregando o modelo…").
-- Nova onda de voz no indicador de gravação: nove barras arredondadas e simétricas, no estilo do logo, que sobem e descem com a voz sem rolar para o lado, com um gradiente único e animação a 60 fps. Em silêncio, viram pontos que respiram devagar.
-
-### Corrigido
-
-- O conteúdo do indicador de gravação ficava desalinhado para cima depois do primeiro segundo.
-- Os campos Microfone, Modo e Idioma da janela principal não se atualizavam quando alterados nos Ajustes.
-- Espaçamentos irregulares no topo da janela principal e no cabeçalho do menu da bandeja.
-- Cards de Modos cortavam a segunda linha da descrição.
-- O texto de ajuda do último passo das boas-vindas era cortado.
-
 ## [0.1.2] - 2026-09-23
 
 ### Adicionado
@@ -39,6 +21,13 @@ Este arquivo registra as mudanças relevantes de cada versão. O formato segue [
 - Adicionada uma versão em inglês do README em `README.en.md`, com aviso sobre o SmartScreen nas duas versões.
 - As notas de cada release são extraídas deste CHANGELOG, e o workflow de release falha se a tag não corresponder à versão do pacote.
 - `requires-python` limitado a 3.11 e 3.12, pois o NumPy 1.x não tem pacotes para o Python 3.13.
+- Janela principal mais compacta: mostra só Modo, Microfone e Idioma, além dos recentes, e cabe em telas de notebook. As demais opções ficam nos Ajustes.
+- Ajustes reorganizados: as abas Áudio e Atalhos viraram a aba Entrada, Idioma e Método de colagem passaram a estar nos Ajustes, e os itens marcados como "em breve" foram removidos.
+- Menu da bandeja com ícones e textos mais claros ("Pausar e liberar memória", "Retomar ditado").
+- Editor de modo sem o campo de atalho "em breve" e sem a pré-visualização fixa, que mostrava o mesmo exemplo para todos os modos.
+- A aba Sobre ganhou links para o código-fonte, as novidades e a pasta de dados.
+- Textos do indicador padronizados ("Transcrevendo…", "Carregando o modelo…").
+- Nova onda de voz no indicador de gravação: nove barras arredondadas e simétricas, no estilo do logo, que sobem e descem com a voz sem rolar para o lado, com um gradiente único e animação a 60 fps. Em silêncio, viram pontos que respiram devagar.
 
 ### Corrigido
 
@@ -66,6 +55,11 @@ Este arquivo registra as mudanças relevantes de cada versão. O formato segue [
 - As abas dos Ajustes rolam: em telas baixas, os cards de Modos se sobrepunham e a seção Desempenho ficava espremida.
 - Notas longas dos Ajustes quebram linha em vez de serem cortadas.
 - Transcrições longas no Histórico mostram duas linhas com reticências em vez de cobrir o chip do modo.
+- O conteúdo do indicador de gravação ficava desalinhado para cima depois do primeiro segundo.
+- Os campos Microfone, Modo e Idioma da janela principal não se atualizavam quando alterados nos Ajustes.
+- Espaçamentos irregulares no topo da janela principal e no cabeçalho do menu da bandeja.
+- Cards de Modos cortavam a segunda linha da descrição.
+- O texto de ajuda do último passo das boas-vindas era cortado.
 
 ## [0.1.1] - 2026-09-01
 
