@@ -100,7 +100,11 @@ class _LevelMeter(QWidget):
     def _stop_recorder(self) -> None:
         if self._recorder is not None:
             try:
-                self._recorder.stop()
+                # close() e não stop(): stop() mantém o stream do PortAudio
+                # aberto e o callback vivo. Como a referência é solta logo
+                # abaixo, o GC liberaria o callback debaixo da thread de
+                # áudio nativa — access violation.
+                self._recorder.close()
             except Exception:  # noqa: BLE001
                 pass
             self._recorder = None
