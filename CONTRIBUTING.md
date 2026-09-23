@@ -43,3 +43,9 @@ pytest
 O Ruff define o estilo do código. Não misture reformatações sem relação com a mudança e não versione ambientes virtuais, caches, modelos, builds, logs ou gravações.
 
 Use mensagens de commit curtas no imperativo. Os prefixos `feat:`, `fix:`, `docs:`, `test:`, `refactor:` e `chore:` são os mais comuns neste repositório.
+
+## Publicar uma versão
+
+1. Mova as entradas de `[Não lançado]` no `CHANGELOG.md` para uma nova seção `## [X.Y.Z] - AAAA-MM-DD` e atualize os links no fim do arquivo.
+2. Atualize a versão em `sussurro/__init__.py`, `pyproject.toml` e no valor padrão de `installer/sussurro.iss`.
+3. Crie e envie a tag `vX.Y.Z`. O workflow de release confere se a tag corresponde a `__version__` e usa a seção do CHANGELOG como notas da release.
