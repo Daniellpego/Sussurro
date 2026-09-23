@@ -132,6 +132,22 @@ _DEFAULT_PROMPTS: dict[str, str] = {
         "  V. DO VALOR DA CAUSA e encerramento ('Termos em que, Pede deferimento. Local e Data. Advogado / OAB').\n"
         "- Linguagem formal forense escorreita, mantendo termos em latim e siglas de tribunais (STF, STJ, TJ, TRF) corretas."
     ),
+    "humanizer": (
+        f"{_BASE_RULES}\n\nMODO: Humanizador.\n"
+        "Tarefa: reescreva a transcricao para soar 100% organica e humana.\n"
+        "- Elimine cliches e maneirismos sinteticos de IA ('no cenario atual', 'em suma', 'e crucial').\n"
+        "- Varie a cadencia das frases evitando simetria artificial.\n"
+        "- Mantenha a intencao original e o tom espontaneo do falante.\n"
+        "- Acentuacao e pontuacao corretas em PT-BR, preservando termos tecnicos em ingles."
+    ),
+    "segundo_cerebro": (
+        f"{_BASE_RULES}\n\nMODO: Segundo Cerebro.\n"
+        "Tarefa: estruture o ditado em uma nota limpa em Markdown para o Obsidian.\n"
+        "- Inclua frontmatter YAML com tipo: nota_rapida e tags: [segundo_cerebro, ditado].\n"
+        "- Adicione um titulo H1 sintetizando o ponto central.\n"
+        "- Organize em secoes com marcadores para Conceitos, Decisoes e Acoes (- [ ]).\n"
+        "- Linguagem concisa e direta, sem preambulos."
+    ),
 }
 
 # (id, nome, descricao, cor-curada, glyph)
@@ -146,6 +162,8 @@ _BUILTIN_META: tuple[tuple[str, str, str, str, str], ...] = (
     ("email_corp",      "Corporativo",     "E-mail executivo com contexto e próximos passos", "blue",    "✉"),
     ("laudo_birads",    "Laudo BI-RADS",   "Laudo radiológico com classificação BI-RADS",     "indigo",  "⚕"),
     ("peticao_inicial", "Petição Inicial", "Estruturação forense de Petição Inicial (CPC)",   "amber",   "§"),
+    ("humanizer",       "Humanizador",     "Escrita organica sem cliches de IA",               "amber",   "~"),
+    ("segundo_cerebro", "Segundo Cerebro", "Nota Markdown estruturada para o Obsidian",        "teal",    "#"),
 )
 
 

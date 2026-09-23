@@ -2,13 +2,9 @@
 
 Logica:
 - Track Ctrl e Win pressionados simultaneamente
-- Quando ambos pressionados: emite `pressed` (uma vez)
-- Quando qualquer um libera: emite `released`
-
-Como Ctrl+Win e prefixo de varios atalhos do Windows
-(Ctrl+Win+D/L/seta), monitoramos tambem se uma OUTRA tecla foi
-pressionada enquanto Ctrl+Win estao segurados — nesse caso, cancelamos
-a gravacao (foi um system shortcut, nao push-to-talk).
+- Modo "push_to_talk": quando ambos pressionados: emite `pressed`; quando qualquer um libera: emite `released`
+- Modo "toggle" (Hands-Free): quando ambos pressionados: alterna estado (emite `pressed` ou `released`)
+- Teclas extras durante Ctrl+Win: cancela (atalho do sistema)
 
 Roda em sua propria thread (pynput.keyboard.Listener) e emite sinais Qt
 thread-safe pra UI thread.
@@ -29,12 +25,22 @@ class PushToTalkListener(QObject):
     CTRL_KEYS = {keyboard.Key.ctrl, keyboard.Key.ctrl_l, keyboard.Key.ctrl_r}
     WIN_KEYS = {keyboard.Key.cmd, keyboard.Key.cmd_l, keyboard.Key.cmd_r}
 
-    def __init__(self) -> None:
+    def __init__(self, mode: str = "push_to_talk") -> None:
         super().__init__()
+        self._mode = mode
         self._ctrl = False
         self._win = False
         self._active = False
+        self._last_toggle_time = 0.0
         self._listener: keyboard.Listener | None = None
+
+    def set_mode(self, mode: str) -> None:
+        """Define o modo de gravacao ('push_to_talk' ou 'toggle')."""
+        self._mode = mode
+
+    @property
+    def mode(self) -> str:
+        return self._mode
 
     def start(self) -> None:
         if self._listener is not None:
@@ -51,6 +57,7 @@ class PushToTalkListener(QObject):
             return
         self._listener.stop()
         self._listener = None
+        self._active = False
 
     # --- handlers ---
 
@@ -63,15 +70,27 @@ class PushToTalkListener(QObject):
             self._win = True
         else:
             # qualquer outra tecla pressionada enquanto Ctrl+Win segurados:
-            # esta virando um atalho do sistema, cancela PTT
-            if self._active:
+            # esta virando um atalho do sistema, cancela
+            if self._both_held() and self._active:
                 self._active = False
                 self.cancelled.emit()
             return
 
-        if not prev_both and self._both_held() and not self._active:
-            self._active = True
-            self.pressed.emit(time.perf_counter())
+        now = time.perf_counter()
+        if not prev_both and self._both_held():
+            if self._mode == "toggle":
+                if (now - self._last_toggle_time) > 0.25:
+                    self._last_toggle_time = now
+                    if not self._active:
+                        self._active = True
+                        self.pressed.emit(now)
+                    else:
+                        self._active = False
+                        self.released.emit(now)
+            else:
+                if not self._active:
+                    self._active = True
+                    self.pressed.emit(now)
 
     def _on_release(self, key) -> None:
         was_active = self._active
@@ -82,9 +101,10 @@ class PushToTalkListener(QObject):
         else:
             return
 
-        if was_active and not self._both_held():
-            self._active = False
-            self.released.emit(time.perf_counter())
+        if self._mode != "toggle":
+            if was_active and not self._both_held():
+                self._active = False
+                self.released.emit(time.perf_counter())
 
     def _both_held(self) -> bool:
         return self._ctrl and self._win

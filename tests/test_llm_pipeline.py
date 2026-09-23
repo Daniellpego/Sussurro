@@ -22,6 +22,8 @@ EXPECTED_MODES = {
     "email_corp",
     "laudo_birads",
     "peticao_inicial",
+    "humanizer",
+    "segundo_cerebro",
 }
 
 

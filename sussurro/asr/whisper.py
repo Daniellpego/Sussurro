@@ -120,13 +120,20 @@ class WhisperWorker(QThread):
         self._quality_preset = preset
         self._beam_size = int(p["beam_size"])
         self._best_of = int(p["best_of"])
-        # model/compute do preset só se o usuário não customizou pra outro
-        # (aqui o preset manda no compute_type "leve")
         if p["compute_type"] != self._compute_type or p["model_size"] != self._model_size:
             self._compute_type = p["compute_type"]
             self._model_size = p["model_size"]
-            # pede reload na próxima job
             self.request_unload()
+
+    def set_model_size(self, model_size: str) -> None:
+        """Atualiza o modelo Whisper em runtime e solicita reload na proxima transcricao."""
+        if model_size and model_size != self._model_size:
+            self._model_size = model_size
+            self.request_unload()
+
+    @property
+    def model_size(self) -> str:
+        return self._model_size
 
     def submit(self, job: TranscriptionJob) -> None:
         self._queue.put(job)

@@ -77,7 +77,7 @@ class App(QObject):
             on_first_frame=self._on_audio_first_frame,
         )
         self._overlay = Overlay(level_source=lambda: self._recorder.level)
-        self._hotkey = PushToTalkListener()
+        self._hotkey = PushToTalkListener(mode=self._cfg.recording_mode)
         self._mouse_hotkey = MouseButtonListener(self._cfg.mouse_button)
         self._worker = WhisperWorker(
             model_size=self._cfg.model_size,
@@ -953,10 +953,15 @@ class App(QObject):
     def _on_config_changed(self) -> None:
         # algumas configs aplicam imediatamente, outras precisam restart
         self._mode = self._cfg.default_mode
-        # idioma + preset de qualidade em runtime
+        self._hotkey.set_mode(self._cfg.recording_mode)
+        # idioma + preset de qualidade + modelo Whisper em runtime
         self._worker.set_language(self._cfg.language)
         try:
             self._worker.set_quality_preset(self._cfg.quality_preset)
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            self._worker.set_model_size(self._cfg.model_size)
         except Exception:  # noqa: BLE001
             pass
         # LLM: keep_alive e permissão de autostart sob demanda

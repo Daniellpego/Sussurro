@@ -46,6 +46,8 @@ class Config:
     # Qualidade do large-v3-turbo e dos prompts Clean = intacta.
     smart_economy: bool = True
 
+    # Modo de gravacao: "push_to_talk" (segura Ctrl+Win) ou "toggle" (toque alterna/hands-free)
+    recording_mode: str = "push_to_talk"
     # Hotkey (legivel, pra UI; mudanca real requer restart por ora)
     hotkey_label: str = "Ctrl+Win"
     # Botao do mouse pra push-to-talk (alternativa ao teclado).

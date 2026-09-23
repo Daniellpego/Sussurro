@@ -25,3 +25,14 @@ def test_modes_contain_new_specialized_presets(monkeypatch, tmp_path: Path) -> N
     peticao = store.get("peticao_inicial")
     assert "Petição Inicial" in peticao.prompt
     assert "DOS FATOS" in peticao.prompt
+
+    assert store.exists("humanizer")
+    assert store.exists("segundo_cerebro")
+
+    humanizer = store.get("humanizer")
+    assert "Humanizador" in humanizer.prompt
+    assert humanizer.builtin is True
+
+    segundo_cerebro = store.get("segundo_cerebro")
+    assert "Segundo Cerebro" in segundo_cerebro.prompt
+    assert segundo_cerebro.builtin is True
