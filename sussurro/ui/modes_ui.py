@@ -18,13 +18,14 @@ from PySide6.QtGui import QPainter, QPaintEvent
 from PySide6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QVBoxLayout,
     QWidget,
 )
 
 from sussurro.llm import modes as M
-from sussurro.llm.modes import DEFAULT_LLM_LABEL, Mode, ModeStore
+from sussurro.llm.modes import DEFAULT_LLM_LABEL, DEFAULT_LLM_MODEL, Mode, ModeStore
 from sussurro.ui import components as kit
 from sussurro.ui import theme
 from sussurro.ui.components.window_frame import FramelessWindow
@@ -433,8 +434,8 @@ class ModeEditor(FramelessWindow):
         # --- Modelo ---
         c.addWidget(self._field_label("Modelo"))
         mcard = kit.GroupCard()
-        self._model_row = kit.ValueRow("Modelo de IA", DEFAULT_LLM_LABEL,
-                                       interactive=False)
+        self._model_row = kit.ValueRow("Modelo de IA", self._model_label())
+        self._model_row.clicked.connect(self._pick_model)
         mcard.add_row(self._model_row)
         c.addWidget(mcard)
 
@@ -525,6 +526,21 @@ class ModeEditor(FramelessWindow):
 
     def _restore_prompt(self) -> None:
         self._prompt.setPlainText(M.default_prompt(self._mode.id))
+
+    def _model_label(self) -> str:
+        if self._mode.model == DEFAULT_LLM_MODEL:
+            return DEFAULT_LLM_LABEL
+        return self._mode.model
+
+    def _pick_model(self) -> None:
+        current = "" if self._mode.model == DEFAULT_LLM_MODEL else self._mode.model
+        model, accepted = QInputDialog.getText(
+            self, "Modelo de IA", "Tag do modelo no Ollama (vazio = padrão):",
+            text=current,
+        )
+        if accepted:
+            self._mode.model = model.strip() or DEFAULT_LLM_MODEL
+            self._model_row.set_value(self._model_label())
 
     def _update_save_enabled(self) -> None:
         self._save_btn.setEnabled(bool(self._mode.name.strip()))
