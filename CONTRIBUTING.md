@@ -17,6 +17,8 @@ pip install -r requirements-dev.txt
 
 Para trabalhar na variante NVIDIA, instale também `requirements-gpu.txt`.
 
+Para abrir o app a partir do código, use `python -m sussurro` ou `scripts\run-dev.bat`. Os demais utilitários estão descritos em [scripts/README.md](scripts/README.md).
+
 ## Relatar um erro
 
 Abra um bug report e informe:
