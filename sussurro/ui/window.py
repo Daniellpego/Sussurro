@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pyperclip
 from PySide6.QtCore import QPoint, QRectF, Qt, Signal
-from PySide6.QtGui import QCloseEvent, QPainter, QPaintEvent
+from PySide6.QtGui import QCloseEvent, QGuiApplication, QPainter, QPaintEvent
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -28,6 +28,16 @@ from sussurro.storage.history import History
 from sussurro.ui import components as kit
 from sussurro.ui import theme
 from sussurro.ui.components.window_frame import FramelessWindow
+
+
+def position_is_on_screen(x: int, y: int, screens) -> bool:
+    """True se a barra de título na posição salva cai em alguma tela.
+
+    Confere um ponto um pouco dentro da janela para que ela possa ser
+    arrastada mesmo quando a borda fica rente ao limite da tela.
+    """
+    return any(rect.contains(x + 40, y + 16) for rect in screens)
+
 
 _LANG_LABELS: dict[str, str] = {
     "pt": "Português", "en": "English", "auto": "Detectar",
@@ -186,7 +196,10 @@ class MainWindow(FramelessWindow):
         self._history_dialog = None
 
         if config.window_x is not None and config.window_y is not None:
-            self.move(config.window_x, config.window_y)
+            screens = [s.availableGeometry() for s in QGuiApplication.screens()]
+            if position_is_on_screen(config.window_x, config.window_y, screens):
+                self.move(config.window_x, config.window_y)
+            # senão (monitor desconectado), abre na posição padrão
 
         self._build()
 

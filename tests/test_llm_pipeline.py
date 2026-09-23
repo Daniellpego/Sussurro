@@ -117,3 +117,44 @@ def test_llm_offline_fallback(monkeypatch, tmp_path: Path) -> None:
     assert result.used_llm is False
     assert result.reason == "offline"
     assert result.processed_text == "eh tipo um teste"
+
+
+def test_llm_missing_model_has_its_own_reason(monkeypatch, tmp_path: Path) -> None:
+    qt = QCoreApplication.instance() or QCoreApplication([])
+    store = _temp_store(monkeypatch, tmp_path)
+    monkeypatch.setattr(ollama_client, "is_running", lambda *a, **k: True)
+
+    def _missing(*_a, model: str = "qwen2.5:7b", **_k):
+        raise ollama_client.OllamaModelMissing(model)
+
+    monkeypatch.setattr(ollama_client, "generate", _missing)
+
+    worker = LLMWorker(store=store, allow_autostart=False)
+    result_holder: list[LLMResult] = []
+    worker.done.connect(result_holder.append)
+    worker.start()
+    worker.submit(LLMJob(request_id=3, mode="clean", raw_text="texto cru"))
+
+    deadline = time.time() + 3
+    while time.time() < deadline and not result_holder:
+        qt.processEvents()
+        time.sleep(0.02)
+
+    worker.shutdown()
+    worker.wait(2000)
+    assert result_holder
+    assert result_holder[0].reason == "no_model"
+    assert result_holder[0].processed_text == "texto cru"
+
+
+def test_generate_404_raises_model_missing(monkeypatch) -> None:
+    import httpx
+    import pytest
+
+    request = httpx.Request("POST", f"{ollama_client.OLLAMA_BASE}/api/generate")
+    monkeypatch.setattr(httpx, "post",
+                        lambda *a, **k: httpx.Response(404, request=request))
+    with pytest.raises(ollama_client.OllamaModelMissing) as info:
+        ollama_client.generate("oi", model="qwen2.5:7b")
+    assert info.value.model == "qwen2.5:7b"
+    assert isinstance(info.value, ollama_client.OllamaError)

@@ -30,7 +30,8 @@ class LLMResult:
     processed_text: str
     duration_ms: float
     used_llm: bool   # False se modo == raw ou Ollama indisponivel
-    reason: str = ""  # por que used_llm=False: "raw" | "offline" | "error"
+    # por que used_llm=False: "raw" | "offline" | "no_model" | "error"
+    reason: str = ""
 
 
 class LLMWorker(QThread):
@@ -139,6 +140,10 @@ class LLMWorker(QThread):
                 temperature=0.25,
                 keep_alive=self._keep_alive,
             )
+        except ollama_client.OllamaModelMissing as exc:
+            log.error("llm sem modelo (modo=%s): %s — colando raw", job.mode, exc)
+            self._degrade(job, "no_model")
+            return
         except ollama_client.OllamaError as exc:
             log.error("llm erro (modo=%s): %s — colando raw", job.mode, exc)
             self._degrade(job, "error")

@@ -199,7 +199,11 @@ class WhisperWorker(QThread):
                 else:
                     self._handle(job)
             except Exception as exc:  # noqa: BLE001
-                self.failed.emit(job.request_id, repr(exc))
+                if isinstance(job, PartialTranscriptionJob):
+                    # prévia ao vivo é descartável: o texto final ainda vem
+                    log.warning("transcrição parcial falhou: %r", exc)
+                else:
+                    self.failed.emit(job.request_id, repr(exc))
             finally:
                 if isinstance(job, PartialTranscriptionJob):
                     with self._partial_lock:

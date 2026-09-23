@@ -109,6 +109,9 @@ class Recorder:
             maxlen=max(1, round(PREBUFFER_MS * sample_rate / 1000 / BLOCK_SIZE))
         )
         self._lock = threading.Lock()
+        # serializa abrir/fechar o stream: a thread "audio-prepare" e o
+        # push-to-talk podiam abrir dois streams ao mesmo tempo
+        self._stream_lock = threading.RLock()
         self._stream: object | None = None
         self._active = False
         self._stream_ready = threading.Event()
@@ -144,6 +147,20 @@ class Recorder:
 
     def prepare(self, timeout: float = 2.0) -> float:
         """Abre o stream uma vez e espera o primeiro callback do dispositivo."""
+        with self._stream_lock:
+            return self._prepare_locked(timeout)
+
+    def _prepare_locked(self, timeout: float) -> float:
+        stale = self._stream
+        if stale is not None and not getattr(stale, "active", True):
+            # o PortAudio para o stream quando o microfone é desconectado;
+            # reabre em vez de gravar silêncio para sempre
+            self._stream = None
+            self._stream_ready.clear()
+            try:
+                stale.close()
+            except Exception:  # noqa: BLE001
+                pass
         if self._stream is not None:
             if not self._stream_ready.wait(timeout):
                 raise TimeoutError("microfone aberto, mas sem frames")
@@ -207,8 +224,9 @@ class Recorder:
 
     def close(self) -> None:
         """Fecha o dispositivo no standby, troca de microfone ou shutdown."""
-        stream = self._stream
-        self._stream = None
+        with self._stream_lock:
+            stream = self._stream
+            self._stream = None
         with self._lock:
             self._active = False
             self._chunks.clear()

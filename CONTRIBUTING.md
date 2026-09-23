@@ -4,7 +4,7 @@ Obrigado pelo interesse em melhorar o Sussurro. Antes de escrever código, procu
 
 ## Preparar o ambiente
 
-O desenvolvimento e os testes de integração devem ser feitos no Windows 10 ou 11 com Python 3.11 ou posterior.
+O desenvolvimento e os testes de integração devem ser feitos no Windows 10 ou 11 com Python 3.11 ou 3.12.
 
 ```powershell
 git clone https://github.com/Daniellpego/Sussurro.git

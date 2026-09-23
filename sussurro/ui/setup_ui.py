@@ -7,6 +7,7 @@ Qwen (pull opcional). "Continuar" libera assim que o Whisper terminar — o LLM
 """
 from __future__ import annotations
 
+import threading
 import webbrowser
 
 from PySide6.QtCore import QRectF, Qt, QTimer, Signal
@@ -60,11 +61,13 @@ class _Check(QWidget):
 
 class SetupWindow(FramelessWindow):
     done = Signal()
+    _ollama_start_finished = Signal(bool)  # resultado de try_start (thread)
 
     def __init__(self, config: Config, parent=None) -> None:
         super().__init__(width=440, parent=parent)
         self._cfg = config
         self._whisper_ready = False
+        self._ollama_start_finished.connect(self._on_ollama_start_finished)
         self._dl_worker = None
         self._pull_worker = None
         self._build()
@@ -100,8 +103,10 @@ class SetupWindow(FramelessWindow):
         wrap.addSpacing(14)
 
         # Whisper
-        (self._wh_card, self._wh_status, self._wh_bar, _) = self._dl_card(
-            f"Whisper {self._cfg.model_size}")
+        (self._wh_card, self._wh_status, self._wh_bar, self._wh_btn) = self._dl_card(
+            f"Whisper {self._cfg.model_size}", with_button=True)
+        self._wh_btn.setText("Tentar de novo")
+        self._wh_btn.clicked.connect(self._start_whisper_download)
         wrap.addWidget(self._wh_card)
         wrap.addSpacing(10)
 
@@ -113,6 +118,8 @@ class SetupWindow(FramelessWindow):
         # Qwen
         (self._qw_card, self._qw_status, self._qw_bar, self._qw_btn) = \
             self._dl_card("Qwen 2.5 · 7B", with_button=True)
+        # conectado uma vez só: _setup_qwen roda a cada atualização do Ollama
+        self._qw_btn.clicked.connect(self._pull_qwen)
         wrap.addWidget(self._qw_card)
         wrap.addSpacing(20)
 
@@ -209,7 +216,9 @@ class SetupWindow(FramelessWindow):
 
         self._ol_btn = kit.SecondaryButton("Instalar Automaticamente")
         self._ol_btn.setVisible(False)
-        self._ol_btn.clicked.connect(self._install_ollama)
+        # a ação do botão muda com o estado (instalar, iniciar, abrir o site)
+        self._ol_action = self._install_ollama
+        self._ol_btn.clicked.connect(lambda: self._ol_action())
         top.addWidget(self._ol_btn)
 
         lay.addLayout(top)
@@ -236,14 +245,19 @@ class SetupWindow(FramelessWindow):
         if setup_check.whisper_cached(self._cfg.model_size):
             self._whisper_done()
         else:
-            self._wh_status.setText("baixando…")
-            self._dl_worker = setup_check.WhisperDownloadWorker(self._cfg.model_size)
-            self._dl_worker.progress.connect(self._on_wh_progress)
-            self._dl_worker.finished_ok.connect(self._whisper_done)
-            self._dl_worker.failed.connect(self._on_wh_failed)
-            self._dl_worker.start()
+            self._start_whisper_download()
 
         self._refresh_ollama()
+
+    def _start_whisper_download(self) -> None:
+        self._wh_btn.setVisible(False)
+        self._wh_bar.set_value(0.0)
+        self._wh_status.setText("baixando…")
+        self._dl_worker = setup_check.WhisperDownloadWorker(self._cfg.model_size)
+        self._dl_worker.progress.connect(self._on_wh_progress)
+        self._dl_worker.finished_ok.connect(self._whisper_done)
+        self._dl_worker.failed.connect(self._on_wh_failed)
+        self._dl_worker.start()
 
     def _on_wh_progress(self, done_gb: float, total_gb: float, mbps: float) -> None:
         self._wh_bar.set_value(done_gb / total_gb if total_gb else 0)
@@ -256,7 +270,8 @@ class SetupWindow(FramelessWindow):
         self._continue_btn.setEnabled(True)
 
     def _on_wh_failed(self, err: str) -> None:
-        self._wh_status.setText("falhou — tente reabrir")
+        self._wh_status.setText("falhou · confira a internet")
+        self._wh_btn.setVisible(True)
 
     def _refresh_ollama(self) -> None:
         running = setup_check.ollama_running()
@@ -271,18 +286,41 @@ class SetupWindow(FramelessWindow):
         elif installed:
             self._ol_check.set_state("warn")
             self._ol_label.setText("Ollama instalado")
-            self._ol_note.setText("inicie o Ollama")
-            self._ol_btn.setVisible(False)
+            self._ol_note.setText("não está em execução")
+            self._ol_action = self._start_ollama
+            self._ol_btn.setText("Iniciar Ollama")
+            self._ol_btn.setEnabled(True)
+            self._ol_btn.setVisible(True)
             self._ol_bar.setVisible(False)
             self._setup_qwen(enabled=False)
         else:
             self._ol_check.set_state("wait")
             self._ol_label.setText("Ollama")
             self._ol_note.setText("opcional para IA")
+            self._ol_action = self._install_ollama
             self._ol_btn.setText("Instalar Automaticamente")
+            self._ol_btn.setEnabled(True)
             self._ol_btn.setVisible(True)
             self._ol_bar.setVisible(False)
             self._setup_qwen(enabled=False)
+
+    def _start_ollama(self) -> None:
+        self._ol_btn.setEnabled(False)
+        self._ol_note.setText("iniciando…")
+
+        def _run() -> None:
+            try:
+                ok = setup_check.ollama_client.try_start()
+            except Exception:  # noqa: BLE001
+                ok = False
+            self._ollama_start_finished.emit(ok)
+
+        threading.Thread(target=_run, daemon=True, name="ollama-start").start()
+
+    def _on_ollama_start_finished(self, ok: bool) -> None:
+        self._refresh_ollama()
+        if not ok:
+            self._ol_note.setText("não iniciou · abra o Ollama pelo menu Iniciar")
 
     def _install_ollama(self) -> None:
         self._ol_btn.setVisible(False)
@@ -305,13 +343,12 @@ class SetupWindow(FramelessWindow):
     def _on_ol_failed(self, error: str) -> None:
         self._ol_check.set_state("warn")
         self._ol_label.setText("Falha no setup do Ollama")
-        self._ol_note.setText("clique para abrir site")
+        self._ol_note.setText(error[:60])
+        self._ol_bar.setVisible(False)
+        self._ol_action = lambda: webbrowser.open("https://ollama.com/download")
         self._ol_btn.setText("Baixar Manualmente")
+        self._ol_btn.setEnabled(True)
         self._ol_btn.setVisible(True)
-        self._ol_btn.clicked.disconnect()
-        self._ol_btn.clicked.connect(
-            lambda: webbrowser.open("https://ollama.com/download")
-        )
 
     def _setup_qwen(self, enabled: bool) -> None:
         if enabled and setup_check.qwen_pulled():
@@ -321,8 +358,8 @@ class SetupWindow(FramelessWindow):
         elif enabled:
             self._qw_status.setText("~4.7 GB")
             self._qw_bar.set_value(0.0)
+            self._qw_btn.setText("Baixar")
             self._qw_btn.setVisible(True)
-            self._qw_btn.clicked.connect(self._pull_qwen)
         else:
             self._qw_status.setText("aguardando Ollama")
             self._qw_bar.set_value(0.0)
@@ -337,9 +374,13 @@ class SetupWindow(FramelessWindow):
                           self._qw_status.setText(f"{d:.1f} / {t:.1f} GB")))
         self._pull_worker.finished_ok.connect(
             lambda: (self._qw_bar.set_value(1.0), self._qw_status.setText("pronto")))
-        self._pull_worker.failed.connect(
-            lambda e: self._qw_status.setText("falhou"))
+        self._pull_worker.failed.connect(self._on_qwen_failed)
         self._pull_worker.start()
+
+    def _on_qwen_failed(self, message: str) -> None:
+        self._qw_status.setText(f"falhou · {message}"[:60])
+        self._qw_btn.setText("Tentar de novo")
+        self._qw_btn.setVisible(True)
 
     def _continue(self) -> None:
         self.done.emit()

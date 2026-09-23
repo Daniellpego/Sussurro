@@ -10,6 +10,7 @@ Roda como app Qt persistente:
 from __future__ import annotations
 
 import logging
+import queue
 import signal
 import sys
 import threading
@@ -28,7 +29,7 @@ from sussurro.asr.whisper import (
 from sussurro.audio.capture import Recorder
 from sussurro.hotkey.listener import PushToTalkListener
 from sussurro.hotkey.mouse_listener import MouseButtonListener
-from sussurro.inject.paste import PasteResult, paste_text
+from sussurro.inject.paste import PasteResult, paste_text, wait_until_keyboard_free
 from sussurro.llm import modes as modes_mod
 from sussurro.llm.modes import ModeStore
 from sussurro.llm.worker import LLMJob, LLMResult, LLMWorker
@@ -43,6 +44,10 @@ from sussurro.ui.tray import Tray
 from sussurro.ui.window import MainWindow
 
 log = logging.getLogger("sussurro")
+
+# Quanto a colagem espera por uma gravação em curso e por teclas soltas
+_PASTE_WAIT_RECORDING_S = 15 * 60
+_PASTE_WAIT_KEYS_S = 5.0
 
 
 class App(QObject):
@@ -102,6 +107,9 @@ class App(QObject):
         )
         # estado de transcricoes pendentes (raw enquanto LLM processa)
         self._pending_raw: dict[int, TranscriptionResult] = {}
+        self._paste_jobs: queue.Queue = queue.Queue()
+        self._no_model_notified = False
+        self._paste_thread: threading.Thread | None = None
 
         # timer de ociosidade -> libera Whisper da VRAM (opt-in unload_idle)
         self._idle_timer = QTimer(self)
@@ -614,10 +622,11 @@ class App(QObject):
             log.debug("observe_text falhou", exc_info=True)
 
         if not text:
-            if self._cfg.show_overlay:
-                self._overlay.show_done(ok=False)  # pílula âmbar "Não captei nada"
-            self._set_status("ready",
-                                     f"silêncio · {self._cfg.trigger_label}")
+            if self._is_current(result.request_id):
+                if self._cfg.show_overlay:
+                    self._overlay.show_done(ok=False)  # pílula âmbar "Não captei nada"
+                self._set_status("ready",
+                                 f"silêncio · {self._cfg.trigger_label}")
             self._complete_trace(result.request_id)
             return
 
@@ -655,6 +664,12 @@ class App(QObject):
                 "error",
                 f"{msg} · fale de novo pra tentar ({self._cfg.trigger_label})")
             return
+        self._traces.pop(request_id, None)
+        if not self._is_current(request_id):
+            # um ditado anterior falhou enquanto o próximo já está em curso
+            self._tray.notify("Não consegui transcrever",
+                              "Um ditado anterior falhou. Tente de novo.")
+            return
         if self._cfg.show_overlay:
             self._overlay.show_error("erro na transcrição")
         self._set_status("error", "erro de transcrição")
@@ -666,6 +681,8 @@ class App(QObject):
             trace.mark("llm_start")
         pending = self._pending_raw.get(request_id)
         mode_id = pending.mode if pending else self._active_mode
+        if not self._is_current(request_id):
+            return
         if self._cfg.show_overlay:
             self._overlay.show_processing(mode_id)  # spinner + chip do modo
         name = self._modes.get(mode_id).name
@@ -729,20 +746,38 @@ class App(QObject):
 
         if self._cfg.paste_after_transcribe:
             # colar fora da thread da UI: paste_text tem sleeps (~0.3s no modo
-            # clipboard) e keyboard.write lento em textos longos no modo "type"
-            import threading
-            threading.Thread(
-                target=self._paste_bg,
-                args=(asr_result, text, used_llm, reason),
-                daemon=True, name="paste").start()
+            # clipboard) e keyboard.write lento em textos longos no modo "type".
+            # Uma fila única mantém a ordem quando há ditados em sequência.
+            self._enqueue_paste(asr_result, text, used_llm, reason)
             return
 
         self._finish_ui(asr_result, used_llm, reason)
         self._complete_trace(asr_result.request_id)
 
+    def _enqueue_paste(self, asr_result: TranscriptionResult, text: str,
+                       used_llm: bool, reason: str) -> None:
+        self._paste_jobs.put((asr_result, text, used_llm, reason))
+        if self._paste_thread is None:
+            self._paste_thread = threading.Thread(
+                target=self._paste_loop, daemon=True, name="paste")
+            self._paste_thread.start()
+
+    def _paste_loop(self) -> None:
+        while True:
+            job = self._paste_jobs.get()
+            try:
+                self._paste_bg(*job)
+            except Exception:  # noqa: BLE001
+                log.exception("falha inesperada na fila de colagem")
+
     def _paste_bg(self, asr_result: TranscriptionResult, text: str,
                   used_llm: bool, reason: str) -> None:
-        """Roda em thread de fundo; resultado volta pra UI via sinal."""
+        """Roda na thread da fila de colagem; resultado volta pra UI via sinal."""
+        wait_until_keyboard_free(
+            lambda: self._recorder.is_recording,
+            recording_timeout=_PASTE_WAIT_RECORDING_S,
+            keys_timeout=_PASTE_WAIT_KEYS_S,
+        )
         trace = self._traces.get(asr_result.request_id)
         if trace:
             trace.mark("paste_start")
@@ -769,11 +804,12 @@ class App(QObject):
             ok=bool(paste), message="" if paste else "falha ao colar")
         if not pr.ok:
             msg = pr.message or "falha ao colar"
-            if self._cfg.show_overlay:
-                # mensagem curta pro HUD (cabe na pílula)
-                short = msg if len(msg) <= 48 else msg[:45] + "…"
-                self._overlay.show_error(short)
-            self._set_status("error", msg)
+            if self._is_current(asr_result.request_id):
+                if self._cfg.show_overlay:
+                    # mensagem curta pro HUD (cabe na pílula)
+                    short = msg if len(msg) <= 48 else msg[:45] + "…"
+                    self._overlay.show_error(short)
+                self._set_status("error", msg)
             # texto já está no histórico — usuário pode copiar de lá
             self._tray.notify("Não consegui colar", msg)
             return
@@ -786,13 +822,25 @@ class App(QObject):
             trace.metadata.setdefault("device", self._worker.active_device)
             self._latency_store.submit(trace)
 
+    def _is_current(self, request_id: int) -> bool:
+        """True se o pedido é o ditado mais recente e nada novo está gravando.
+
+        Resultados de um ditado anterior não podem sobrescrever o HUD e o
+        status de uma gravação que já começou depois dele.
+        """
+        return (request_id == self._active_request_id
+                and not self._recorder.is_recording)
+
     def _finish_ui(self, asr_result: TranscriptionResult,
                    used_llm: bool, reason: str) -> None:
+        if not self._is_current(asr_result.request_id):
+            return
         ai_skipped = asr_result.mode != "raw" and not used_llm
         if self._cfg.show_overlay:
             if ai_skipped:
                 # a IA do modo NAO rodou — avisa em vez de fingir sucesso
                 why = {"offline": "Ollama offline",
+                       "no_model": "modelo de IA não baixado",
                        "error": "erro na IA"}.get(reason, "IA indisponível")
                 self._overlay.show_pasted_no_ai(why)
             else:
@@ -804,6 +852,13 @@ class App(QObject):
         status_msg = f"pronto · {self._cfg.trigger_label}"
         if ai_skipped:
             status_msg = f"colado sem IA · {self._cfg.trigger_label}"
+        if reason == "no_model" and not self._no_model_notified:
+            # o log tem o comando; o usuário precisa ver o que fazer
+            self._no_model_notified = True
+            self._tray.notify(
+                "Modelo de IA não baixado",
+                "O texto foi colado sem revisão. Baixe o modelo na tela de "
+                "configuração inicial ou rode \"ollama pull\" no terminal.")
         self._set_status("ready", status_msg)
 
     @Slot()

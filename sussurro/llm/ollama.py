@@ -35,6 +35,15 @@ class OllamaError(Exception):
     pass
 
 
+class OllamaModelMissing(OllamaError):
+    """O Ollama respondeu, mas o modelo pedido não foi baixado."""
+
+    def __init__(self, model: str) -> None:
+        super().__init__(
+            f"modelo '{model}' nao encontrado no Ollama. Rode: ollama pull {model}")
+        self.model = model
+
+
 def is_running(timeout: float = PING_TIMEOUT) -> bool:
     """Quick TCP check no porto 11434."""
     try:
@@ -180,10 +189,7 @@ def generate(prompt: str,
         raise OllamaError(f"falha de rede ao chamar Ollama: {exc}") from exc
 
     if resp.status_code == 404:
-        raise OllamaError(
-            f"modelo '{model}' nao encontrado no Ollama. "
-            f"Rode: ollama pull {model}"
-        )
+        raise OllamaModelMissing(model)
     if resp.status_code >= 400:
         raise OllamaError(
             f"Ollama retornou {resp.status_code}: {resp.text[:200]}"

@@ -9,7 +9,7 @@ import json
 import time
 from dataclasses import asdict, dataclass, fields
 
-from sussurro.storage.paths import history_path, write_text_atomic
+from sussurro.storage.paths import backup_corrupt, history_path, write_text_atomic
 
 MAX_ENTRIES = 500
 
@@ -44,10 +44,13 @@ class History:
             return
         try:
             raw = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
+        except OSError:
             self._entries = []
             return
+        except json.JSONDecodeError:
+            raw = None
         if not isinstance(raw, list):
+            backup_corrupt(path)
             self._entries = []
             return
 

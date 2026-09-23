@@ -5,7 +5,7 @@ import tomllib
 from dataclasses import asdict, dataclass
 from typing import Any
 
-from sussurro.storage.paths import config_path, write_text_atomic
+from sussurro.storage.paths import backup_corrupt, config_path, write_text_atomic
 
 
 @dataclass
@@ -87,7 +87,10 @@ class Config:
         try:
             with path.open("rb") as fh:
                 raw = tomllib.load(fh)
-        except (OSError, tomllib.TOMLDecodeError):
+        except tomllib.TOMLDecodeError:
+            backup_corrupt(path)
+            return cls()
+        except OSError:
             return cls()
         return cls(**{k: v for k, v in raw.items() if k in cls.__dataclass_fields__})
 

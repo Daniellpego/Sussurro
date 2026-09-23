@@ -92,7 +92,7 @@ Models are downloaded on first use, so an internet connection is needed during i
 
 ## Development
 
-Sussurro uses Python 3.11 or later. In Windows PowerShell:
+Sussurro uses Python 3.11 or 3.12 (the NumPy 1.x release its audio dependencies use has no Python 3.13 packages). In Windows PowerShell:
 
 ```powershell
 git clone https://github.com/Daniellpego/Sussurro.git
