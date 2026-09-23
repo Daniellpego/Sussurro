@@ -83,6 +83,17 @@ class _Chip(QWidget):
         p.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, self._name)
 
 
+_PREVIEW_CHARS = 150
+
+
+def _preview(text: str) -> str:
+    """Texto curto para a lista: uma linha lógica, cortado com reticências."""
+    flat = " ".join(text.split())
+    if len(flat) <= _PREVIEW_CHARS:
+        return flat
+    return flat[:_PREVIEW_CHARS].rstrip() + "…"
+
+
 class _HistItem(QWidget):
     copied = Signal(str)
     deleted = Signal(float)
@@ -133,8 +144,13 @@ class _HistItem(QWidget):
         top.addWidget(ts, 0, Qt.AlignmentFlag.AlignVCenter)
         lay.addLayout(top)
 
-        body = QLabel(entry.text.strip())
+        full = entry.text.strip()
+        body = QLabel(_preview(full))
         body.setWordWrap(True)
+        # alinhado ao topo: centralizado, o texto além de 2 linhas vazava
+        # para cima e cobria o chip do modo
+        body.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        body.setToolTip(full if len(full) <= 1500 else full[:1500] + "…")
         is_code = entry.mode == "code"
         if is_code:
             body.setFont(theme.qfont(12.5, theme.W_REGULAR, mono=True))
@@ -143,10 +159,11 @@ class _HistItem(QWidget):
         else:
             body.setFont(theme.qfont(13.5))
             body.setStyleSheet(f"color: {pal.text_body_card}; background: transparent;")
-        # clamp ~2 linhas
+        # clamp em 2 linhas exatas (o texto completo fica no tooltip e no
+        # clipboard ao clicar)
         from PySide6.QtGui import QFontMetrics
         fm = QFontMetrics(body.font())
-        body.setMaximumHeight(int(fm.lineSpacing() * 2.2))
+        body.setMaximumHeight(fm.lineSpacing() * 2 + 2)
         lay.addWidget(body)
 
     def enterEvent(self, e) -> None:  # noqa: N802

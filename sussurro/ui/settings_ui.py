@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMenu,
+    QScrollArea,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
@@ -210,13 +211,36 @@ class SettingsWindow(FramelessWindow):
         }[key]()
 
     def _scroll_pane(self, inner: QWidget) -> QWidget:
+        """Envolve a aba numa área com rolagem.
+
+        Sem rolagem, abas longas (Modelos, Modos) eram espremidas na altura
+        da janela e as linhas se sobrepunham em telas baixas.
+        """
         wrap = QWidget()
+        wrap.setObjectName("SettingsPane")
+        wrap.setStyleSheet("QWidget#SettingsPane { background: transparent; }")
         lay = QVBoxLayout(wrap)
         lay.setContentsMargins(22, 20, 22, 20)
         lay.setSpacing(18)
         lay.addWidget(inner)
         lay.addStretch(1)
-        return wrap
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setStyleSheet(f"""
+        QScrollArea {{ background: transparent; }}
+        QScrollBar:vertical {{ background: transparent; width: 9px; margin: 2px; }}
+        QScrollBar::handle:vertical {{
+            background: {theme.rgba(theme.palette().text_primary, 0.16)};
+            border-radius: 4px; min-height: 30px; }}
+        QScrollBar::add-line, QScrollBar::sub-line {{ height: 0; }}
+        """)
+        scroll.viewport().setAutoFillBackground(False)
+        scroll.viewport().setStyleSheet("background: transparent;")
+        scroll.setWidget(wrap)
+        return scroll
 
     def _section(self, title: str, card: QWidget) -> QWidget:
         w = QWidget()
@@ -335,7 +359,9 @@ class SettingsWindow(FramelessWindow):
         self._manager.edit_requested.connect(self._open_editor)
         self._manager.new_requested.connect(lambda: self._open_editor(None))
         self._manager.changed.connect(self._on_modes_changed)
-        return self._manager
+        # rolagem como nas outras abas: com 10+ modos os cards (altura fixa)
+        # não cabem na janela e se sobrepunham
+        return self._scroll_pane(self._manager)
 
     def _open_editor(self, mode_id) -> None:
         self._editor = ModeEditor(self._store, mode_id, parent=self)
@@ -698,6 +724,7 @@ class SettingsWindow(FramelessWindow):
         lbl = QLabel(text)
         lbl.setFont(theme.qfont(11.5))
         lbl.setStyleSheet(f"color: {pal.text_tertiary}; background: transparent;")
+        lbl.setWordWrap(True)  # notas longas quebram linha em vez de serem cortadas
         lay.addWidget(lbl)
         return row
 
