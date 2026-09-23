@@ -29,7 +29,6 @@ class TranscriptionJob:
     audio: np.ndarray
     mode: str = "raw"
     initial_prompt: str | None = None
-    hotwords: str | None = None
     request_id: int = 0
 
 
@@ -304,7 +303,10 @@ class WhisperWorker(QThread):
             beam_size=self._beam_size,
             best_of=self._best_of,
             patience=1.0,
-            without_timestamps=True,
+            # com timestamps o Whisper avança até o fim do último segmento
+            # completo; sem eles pulava a janela de 30 s inteira e perdia as
+            # palavras da emenda em ditados longos
+            without_timestamps=False,
             vad_filter=True,
             vad_parameters={
                 "min_silence_duration_ms": 350,
@@ -319,8 +321,6 @@ class WhisperWorker(QThread):
         )
         if job.initial_prompt:
             kwargs["initial_prompt"] = job.initial_prompt
-        if job.hotwords:
-            kwargs["hotwords"] = job.hotwords
 
         try:
             segments, info = self._model.transcribe(job.audio, **kwargs)

@@ -75,8 +75,18 @@ def test_style_prompt_always() -> None:
     d._terms = ["PySide6", "Claude"]
     p2 = d.to_prompt()
     _assert("PySide6" in (p2 or ""), f"terms in prompt: {p2}")
-    hw = d.to_hotwords()
-    _assert(hw is not None and "PySide6" in hw, f"hotwords: {hw}")
+
+
+def test_prompt_stays_short_and_keeps_user_terms() -> None:
+    from sussurro.storage.dictionary import SEED_TERMS
+
+    d = Dictionary.__new__(Dictionary)
+    # dicionário cheio: semente inteira + termos do próprio usuário no fim
+    d._terms = list(SEED_TERMS) + ["Fulano Pereira", "Kafka"]
+    p = d.to_prompt() or ""
+    # o prompt sai dos 448 tokens da janela; longo demais corta a fala
+    _assert(len(p) <= 400, f"prompt longo: {len(p)}")
+    _assert("Fulano Pereira" in p and "Kafka" in p, f"termos do usuário: {p}")
 
 
 def test_voice_commands() -> None:
