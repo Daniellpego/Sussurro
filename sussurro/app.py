@@ -335,8 +335,14 @@ class App(QObject):
         # solta Qwen da VRAM ao sair (não mata ollama.exe — só descarrega pesos)
         if self._cfg.ollama_unload_on_quit:
             import threading
-            threading.Thread(target=self._unload_owned_llm_models, daemon=True,
-                             name="ollama-quit-unload").start()
+            unload = threading.Thread(target=self._unload_owned_llm_models,
+                                      daemon=True, name="ollama-quit-unload")
+            unload.start()
+            # sem o join a thread morre com o interpretador antes de a
+            # requisição sair, e os pesos ficam na VRAM depois de fechar
+            unload.join(timeout=2.0)
+            if unload.is_alive():
+                log.warning("descarga do LLM nao concluiu em 2s; seguindo")
         self._tray.hide()
 
     # --- callbacks ---
