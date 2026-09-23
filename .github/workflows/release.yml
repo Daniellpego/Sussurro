@@ -26,6 +26,10 @@ jobs:
           python-version: "3.11"
           cache: pip
 
+      - name: Check version and extract release notes
+        shell: pwsh
+        run: python scripts/release_notes.py "${{ github.ref_name }}" --out installer/out/RELEASE_NOTES.md
+
       - name: Install Inno Setup
         shell: pwsh
         run: |
@@ -48,15 +52,17 @@ jobs:
         shell: pwsh
         run: |
           $env:SUSSURRO_VARIANT = "cpu"
+          $version = "${{ github.ref_name }}".TrimStart('v')
           pyinstaller --noconfirm sussurro.spec
-          ISCC.exe /DMyAppVersion="${{ github.ref_name }}" /DAppVariant="CPU" installer/sussurro.iss
+          ISCC.exe /DMyAppVersion="$version" /DAppVariant="CPU" installer/sussurro.iss
 
       - name: Build Standalone Bundle (CUDA Variant)
         shell: pwsh
         run: |
           $env:SUSSURRO_VARIANT = "cuda"
+          $version = "${{ github.ref_name }}".TrimStart('v')
           pyinstaller --noconfirm sussurro.spec
-          ISCC.exe /DMyAppVersion="${{ github.ref_name }}" /DAppVariant="CUDA" installer/sussurro.iss
+          ISCC.exe /DMyAppVersion="$version" /DAppVariant="CUDA" installer/sussurro.iss
 
       - name: Generate Checksums
         shell: pwsh
@@ -74,6 +80,7 @@ jobs:
             installer/out/SussurroSetup-CPU.exe
             installer/out/SussurroSetup-CUDA.exe
             installer/out/checksums-sha256.txt
+          body_path: installer/out/RELEASE_NOTES.md
           generate_release_notes: true
           draft: false
           prerelease: false
