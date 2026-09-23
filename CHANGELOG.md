@@ -4,11 +4,15 @@ Este arquivo registra as mudanças relevantes de cada versão. O formato segue [
 
 ## [Não lançado]
 
+## [0.1.2] - 2026-09-23
+
 ### Adicionado
 
 - Transcrição parcial no HUD durante gravações mais longas.
 - Métricas locais de latência por etapa em `latency.jsonl`.
 - Benchmark reproduzível para o modelo `large-v3-turbo` em CPU e CUDA.
+- Fontes Geist e Geist Mono (OFL) e sons de feedback versionados no repositório; o build falha se algum desses arquivos faltar.
+- Auditoria de dependências (`pip-audit`) no CI.
 
 ### Alterado
 
@@ -16,6 +20,7 @@ Este arquivo registra as mudanças relevantes de cada versão. O formato segue [
 - O modelo de transcrição é carregado e aquecido antes de o atalho ser habilitado.
 - Adicionada uma versão em inglês do README em `README.en.md`, com aviso sobre o SmartScreen nas duas versões.
 - As notas de cada release são extraídas deste CHANGELOG, e o workflow de release falha se a tag não corresponder à versão do pacote.
+- `requires-python` limitado a 3.11 e 3.12, pois o NumPy 1.x não tem pacotes para o Python 3.13.
 
 ### Corrigido
 
@@ -40,12 +45,6 @@ Este arquivo registra as mudanças relevantes de cada versão. O formato segue [
 - Modelo de IA não baixado aparece como tal no HUD e numa notificação, em vez de "erro na IA".
 - A janela principal não abre mais fora da tela depois que um monitor é desconectado.
 - Atualizar ou trocar entre as variantes CPU e CUDA remove os arquivos da instalação anterior.
-
-### Adicionado (empacotamento)
-
-- Fontes Geist e Geist Mono (OFL) e sons de feedback versionados no repositório; o build falha se algum desses arquivos faltar.
-- Auditoria de dependências (`pip-audit`) no CI.
-- `requires-python` limitado a 3.11 e 3.12, pois o NumPy 1.x não tem pacotes para o Python 3.13.
 
 ## [0.1.1] - 2026-09-01
 
@@ -75,6 +74,7 @@ Este arquivo registra as mudanças relevantes de cada versão. O formato segue [
 - Modos de revisão local pelo Ollama.
 - Histórico pesquisável e configurações pela bandeja do sistema.
 
-[Não lançado]: https://github.com/Daniellpego/Sussurro/compare/v0.1.1...HEAD
+[Não lançado]: https://github.com/Daniellpego/Sussurro/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/Daniellpego/Sussurro/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Daniellpego/Sussurro/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Daniellpego/Sussurro/releases/tag/v0.1.0
