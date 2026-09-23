@@ -16,6 +16,8 @@ Este arquivo registra as mudanças relevantes de cada versão. O formato segue [
 
 ### Corrigido
 
+- Transcrição muito mais precisa: o dicionário ia duas vezes para o Whisper e ocupava quase todo o espaço da janela de 30 s, o que cortava ditados longos no meio da frase e fazia o modelo repetir palavras ("chat, chat, chat…") ou perder frases inteiras. Em testes com áudio em português, o erro caiu de 16,3% para 3,2%.
+- Ditados com mais de 30 segundos não perdem mais as palavras da emenda entre janelas.
 - O aviso "Carregando o modelo…" ficava na tela depois que o modelo já estava pronto, até o próximo ditado.
 - Abrir o Sussurro com ele já aberto iniciava uma segunda instância, e as duas digitavam o mesmo texto com as letras embaralhadas. Agora o segundo clique só mostra a janela que já está aberta.
 
