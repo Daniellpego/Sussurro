@@ -1,23 +1,29 @@
-"""Indicador de gravação: conteúdo centralizado e onda que segue a voz."""
+"""Indicador de gravação: só a onda, que segue a voz."""
 from __future__ import annotations
 
-import time
 
-
-def test_timer_update_keeps_content_centered_in_pill() -> None:
+def test_recording_shows_only_the_wave() -> None:
     from sussurro.ui.overlay import Overlay
 
     overlay = Overlay(level_source=lambda: 0.5)
     overlay.show_recording("raw")
-    before = overlay._content.geometry()  # noqa: SLF001
-    overlay._start_time = time.monotonic() - 65  # noqa: SLF001 - "1:05"
-    overlay._update_timer()  # noqa: SLF001
-    after = overlay._content.geometry()  # noqa: SLF001
+    shown = [overlay._row.itemAt(i).widget()  # noqa: SLF001
+             for i in range(overlay._row.count())]  # noqa: SLF001
+    # sem texto ao vivo, ponto de gravação nem cronômetro: só a onda
+    assert shown == [overlay._wave]  # noqa: SLF001
+    content = overlay._content.geometry()  # noqa: SLF001
+    assert content.height() == overlay._pill_h  # noqa: SLF001
+    overlay.close()
 
-    # antes, adjustSize() encolhia a altura e o conteúdo subia na pílula
-    assert after.height() == overlay._pill_h  # noqa: SLF001
-    assert after.top() == before.top()
-    assert after.width() >= before.width()
+
+def test_recording_keeps_mode_chip_for_non_default_modes() -> None:
+    from sussurro.ui.overlay import Overlay
+
+    overlay = Overlay(level_source=lambda: 0.5)
+    overlay.show_recording("email")
+    shown = [overlay._row.itemAt(i).widget()  # noqa: SLF001
+             for i in range(overlay._row.count())]  # noqa: SLF001
+    assert shown == [overlay._chip, overlay._wave]  # noqa: SLF001
     overlay.close()
 
 
