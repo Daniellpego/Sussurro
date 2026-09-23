@@ -1,0 +1,11 @@
+# Quebras de linha: LF no repositório e no checkout, inclusive no Windows.
+# Scripts do cmd precisam de CRLF.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binários
+*.png binary
+*.ico binary
+*.ttf binary
+*.wav binary
