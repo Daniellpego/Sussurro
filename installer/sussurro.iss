@@ -7,15 +7,15 @@
 ;   2. Inno Setup 6 instalado (ISCC.exe)
 ;
 ; Build do installer:
-;   ISCC.exe /DMyAppVersion=0.1.1 /DAppVariant=CPU installer\sussurro.iss
-;   ISCC.exe /DMyAppVersion=0.1.1 /DAppVariant=CUDA installer\sussurro.iss
+;   ISCC.exe /DMyAppVersion=0.1.2 /DAppVariant=CPU installer\sussurro.iss
+;   ISCC.exe /DMyAppVersion=0.1.2 /DAppVariant=CUDA installer\sussurro.iss
 ;
 ; Saida:
 ;   installer\out\SussurroSetup-CPU.exe ou SussurroSetup-CUDA.exe
 
 #define MyAppName "Sussurro"
 #ifndef MyAppVersion
-  #define MyAppVersion "0.1.1"
+  #define MyAppVersion "0.1.2"
 #endif
 #ifndef AppVariant
   #define AppVariant "CPU"

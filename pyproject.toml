@@ -1,6 +1,6 @@
 [project]
 name = "sussurro"
-version = "0.1.1"
+version = "0.1.2"
 description = "Ditado por voz local para Windows com faster-whisper e LLM local opcional."
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
