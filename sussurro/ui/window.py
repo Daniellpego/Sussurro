@@ -10,7 +10,6 @@ signals close_to_tray/config_changed, métodos set_status/refresh_history.
 from __future__ import annotations
 
 import pyperclip
-import sounddevice as sd
 from PySide6.QtCore import QPoint, QRectF, Qt, Signal
 from PySide6.QtGui import QCloseEvent, QPainter, QPaintEvent
 from PySide6.QtWidgets import (
@@ -21,6 +20,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from sussurro.audio.capture import list_input_devices
 from sussurro.llm import modes as M
 from sussurro.llm.modes import ModeStore
 from sussurro.storage.config import Config
@@ -477,12 +477,7 @@ class MainWindow(FramelessWindow):
 
     def _pick_mic(self) -> None:
         opts = [(None, "Padrão do sistema")]
-        try:
-            for dev in sd.query_devices():
-                if dev.get("max_input_channels", 0) > 0:
-                    opts.append((dev["name"], dev["name"]))
-        except Exception:  # noqa: BLE001
-            pass
+        opts.extend((name, name) for name in list_input_devices())
         self._menu(self._mic_row, opts, self._cfg.mic_device, self._set_mic)
 
     def _set_mic(self, value) -> None:

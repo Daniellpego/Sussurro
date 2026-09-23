@@ -9,7 +9,6 @@ from __future__ import annotations
 import math
 import time
 
-import sounddevice as sd
 from PySide6.QtCore import QPoint, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import QLinearGradient, QPainter, QPaintEvent
 from PySide6.QtWidgets import (
@@ -21,7 +20,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from sussurro.audio.capture import Recorder
+from sussurro.audio.capture import Recorder, list_input_devices
 from sussurro.ui import components as kit
 from sussurro.ui import theme
 from sussurro.ui.components.window_frame import FramelessWindow
@@ -293,12 +292,7 @@ class OnboardingWizard(FramelessWindow):
         QMenu::item:selected {{ background: {pal.hover}; }}
         """)
         opts = [(None, "Padrão do sistema")]
-        try:
-            for dev in sd.query_devices():
-                if dev.get("max_input_channels", 0) > 0:
-                    opts.append((dev["name"], dev["name"]))
-        except Exception:  # noqa: BLE001
-            pass
+        opts.extend((name, name) for name in list_input_devices())
         for val, label in opts:
             act = menu.addAction(label); act.setData(val)
         chosen = menu.exec(self._mic_row.mapToGlobal(QPoint(0, self._mic_row.height())))

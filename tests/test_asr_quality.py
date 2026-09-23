@@ -83,5 +83,5 @@ def test_voice_commands() -> None:
     out = apply_commands("olá vírgula mundo ponto final fim")
     _assert("," in out, f"virgula: {out}")
     _assert("." in out, f"ponto final: {out}")
-    out2 = apply_commands("a nova linha b")
+    out2 = apply_commands("olá nova linha b")
     _assert("\n" in out2, f"nova linha: {out2}")

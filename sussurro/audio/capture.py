@@ -24,6 +24,75 @@ BLOCK_SIZE = 320  # 20 ms a 16 kHz
 PREBUFFER_MS = 300
 
 
+def _input_devices() -> list[tuple[int, dict]]:
+    try:
+        devices = list(sd.query_devices())
+    except Exception:  # noqa: BLE001
+        return []
+    return [(i, d) for i, d in enumerate(devices)
+            if d.get("max_input_channels", 0) > 0]
+
+
+def _default_input_hostapi() -> int | None:
+    try:
+        return int(sd.query_devices(kind="input")["hostapi"])
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def list_input_devices() -> list[str]:
+    """Nomes dos microfones, um por aparelho.
+
+    O Windows expõe o mesmo microfone em várias APIs (MME, DirectSound,
+    WASAPI...). A lista usa só a API do microfone padrão, e cai para todas
+    as APIs, sem nomes repetidos, se a padrão não for conhecida.
+    """
+    devices = _input_devices()
+    hostapi = _default_input_hostapi()
+    if hostapi is not None and any(d.get("hostapi") == hostapi for _, d in devices):
+        devices = [(i, d) for i, d in devices if d.get("hostapi") == hostapi]
+    names: list[str] = []
+    for _, d in devices:
+        name = d.get("name", "")
+        if name and name not in names:
+            names.append(name)
+    return names
+
+
+def resolve_input_device(device: int | str | None) -> int | None:
+    """Converte o nome salvo na config no índice do dispositivo.
+
+    Passar só o nome ao sounddevice falha com "Multiple input devices found"
+    quando o nome aparece em mais de uma API. None usa o microfone padrão.
+    """
+    if device is None or isinstance(device, int):
+        return device
+    wanted = device.strip()
+    if not wanted:
+        return None
+    devices = _input_devices()
+    hostapi = _default_input_hostapi()
+    preferred = [(i, d) for i, d in devices if d.get("hostapi") == hostapi]
+    for pool in (preferred, devices):
+        for i, d in pool:
+            if d.get("name") == wanted:
+                return i
+    # o MME corta nomes em 31 caracteres; aceita o nome cortado de um lado
+    # ou de outro quando ele identifica um único aparelho
+    lowered = wanted.lower()
+    prefixed = {d.get("name") for _, d in devices
+                if len(d.get("name", "")) >= 20
+                and (lowered.startswith(d["name"].lower())
+                     or d["name"].lower().startswith(lowered))}
+    if len(prefixed) == 1:
+        name = prefixed.pop()
+        for pool in (preferred, devices):
+            for i, d in pool:
+                if d.get("name") == name:
+                    return i
+    raise ValueError(f"microfone não encontrado: {wanted}")
+
+
 class Recorder:
     """Recorder de push-to-talk que mantém o dispositivo pronto."""
 
@@ -86,7 +155,7 @@ class Recorder:
             channels=CHANNELS,
             dtype=DTYPE,
             blocksize=BLOCK_SIZE,
-            device=self._device,
+            device=resolve_input_device(self._device),
             callback=self._callback,
         )
         try:

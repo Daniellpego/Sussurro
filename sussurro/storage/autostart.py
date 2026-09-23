@@ -61,6 +61,16 @@ def set_enabled(enabled: bool, exe_path: str | None = None) -> bool:
         return False
 
 
+def apply(enabled: bool) -> bool:
+    """Grava no registro só quando o estado atual é diferente do pedido.
+
+    Evita apagar a entrada criada pelo instalador a cada ajuste salvo.
+    """
+    if is_enabled() == enabled:
+        return True
+    return set_enabled(enabled)
+
+
 def _detect_exe_path() -> str | None:
     """Caminho do exe quando frozen (PyInstaller); None em venv."""
     if getattr(sys, "frozen", False):

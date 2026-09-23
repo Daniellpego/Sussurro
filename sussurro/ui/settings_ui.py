@@ -8,7 +8,6 @@ Troca de tema (Aparência) é tratada pelo app (re-tematiza TODAS as janelas).
 """
 from __future__ import annotations
 
-import sounddevice as sd
 from PySide6.QtCore import QPoint, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QLinearGradient, QPainter, QPaintEvent
 from PySide6.QtWidgets import (
@@ -21,6 +20,7 @@ from PySide6.QtWidgets import (
 )
 
 from sussurro import __version__
+from sussurro.audio.capture import list_input_devices
 from sussurro.llm.modes import ModeStore
 from sussurro.storage.config import Config
 from sussurro.ui import components as kit
@@ -320,7 +320,7 @@ class SettingsWindow(FramelessWindow):
         v.setFont(theme.qfont(13.5, theme.W_MEDIUM))
         v.setStyleSheet(f"color: {pal.text_primary}; background: transparent;")
         col.addWidget(v)
-        sub = QLabel("você está atualizado")
+        sub = QLabel("verificação de atualizações em breve")
         sub.setFont(theme.qfont(11.5, theme.W_MEDIUM, mono=True))
         sub.setStyleSheet(f"color: {pal.text_mono_dim}; background: transparent;")
         col.addWidget(sub)
@@ -377,7 +377,7 @@ class SettingsWindow(FramelessWindow):
         col.addWidget(self._section("Processamento (LLM)", llm))
 
         # Desempenho / VRAM / RAM
-        # Regra de ouro: NADA aqui troca large-v3 por modelo pior.
+        # Regra de ouro: NADA aqui troca o modelo Whisper por um pior.
         # Economia = quando carregar / descarregar, não o que reconhece.
         perf = kit.GroupCard()
         self._tg_smart = kit.ToggleRow(
@@ -386,7 +386,7 @@ class SettingsWindow(FramelessWindow):
             lambda v: self._set("smart_economy", v))
         perf.add_row(self._tg_smart)
         perf.add_row(self._note_row(
-            "Mantém o Whisper large-v3. Só evita prender o Qwen na VRAM "
+            "Mantém o mesmo modelo Whisper. Só evita prender o Qwen na VRAM "
             "quando você usa Raw ou fica ocioso. Texto = mesma qualidade."))
 
         self._tg_start_armed = kit.ToggleRow(
@@ -395,8 +395,8 @@ class SettingsWindow(FramelessWindow):
             lambda v: self._set("start_armed", v))
         perf.add_row(self._tg_start_armed)
         perf.add_row(self._note_row(
-            "Desligado (padrão): abre em espera, quase sem VRAM. "
-            "Você ativa na bandeja quando for usar."))
+            "Ligado (padrão): abre pronto pra ditar. Desligado: abre em "
+            "espera, quase sem VRAM, e você ativa na bandeja quando for usar."))
 
         self._tg_preload = kit.ToggleRow(
             "Pré-carregar Whisper ao ativar", self._cfg.preload_asr)
@@ -442,7 +442,7 @@ class SettingsWindow(FramelessWindow):
         self._tg_unload.toggled.connect(self._on_unload_toggle)
         perf.add_row(self._tg_unload)
         perf.add_row(self._note_row(
-            "Descarrega o large-v3 após ~10 min sem ditar (e o Qwen aos 2 min). "
+            "Descarrega o Whisper após ~10 min sem ditar (e o Qwen aos 2 min). "
             "Bom pra jogar. Ao falar de novo, recarrega o mesmo modelo."))
         col.addWidget(self._section("Desempenho", perf))
         return self._scroll_pane(inner)
@@ -759,12 +759,7 @@ class SettingsWindow(FramelessWindow):
 
     def _pick_mic(self) -> None:
         opts = [(None, "Padrão do sistema")]
-        try:
-            for dev in sd.query_devices():
-                if dev.get("max_input_channels", 0) > 0:
-                    opts.append((dev["name"], dev["name"]))
-        except Exception:  # noqa: BLE001
-            pass
+        opts.extend((name, name) for name in list_input_devices())
         self._menu(self._row_mic, opts, self._cfg.mic_device, self._set_mic)
 
     def _set_mic(self, value) -> None:
