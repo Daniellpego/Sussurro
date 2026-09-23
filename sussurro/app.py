@@ -134,7 +134,7 @@ class App(QObject):
         if self._paused:
             self._set_status("paused", "em espera · ative na bandeja")
         elif self._cfg.preload_asr:
-            self._set_status("loading", "carregando modelo...")
+            self._set_status("loading", "carregando o modelo…")
         else:
             self._set_status("ready", f"ativo · {self._cfg.trigger_label}")
 
@@ -255,7 +255,7 @@ class App(QObject):
         """Garante que o modelo esteja carregado e aquecido."""
         if not self._worker.isRunning():
             log.info("iniciando ASR em background")
-            self._set_status("loading", "carregando modelo...")
+            self._set_status("loading", "carregando o modelo…")
             if self._cfg.show_overlay:
                 self._overlay.show_loading_model()
             self._worker.start()
@@ -416,7 +416,7 @@ class App(QObject):
         log.info("recarregando modelo (aquecendo a GPU)")
         if self._cfg.show_overlay:
             self._overlay.show_loading_model()
-        self._set_status("loading", "aquecendo a GPU...")
+        self._set_status("loading", "carregando o modelo…")
 
     def _start_hotkeys(self) -> None:
         if self._hotkeys_started:
@@ -516,7 +516,7 @@ class App(QObject):
             self._overlay.show_recording(self._active_mode)
         from sussurro import sound
         sound.play("start", self._cfg.play_sound)
-        self._set_status("recording", "ouvindo...")
+        self._set_status("recording", "ouvindo…")
         self._partial_timer.start()
 
     @Slot(float)
@@ -686,7 +686,7 @@ class App(QObject):
         if self._cfg.show_overlay:
             self._overlay.show_processing(mode_id)  # spinner + chip do modo
         name = self._modes.get(mode_id).name
-        self._set_status("loading", f"refinando · {name}...")
+        self._set_status("loading", f"refinando · {name}…")
 
     @Slot(object)
     def _on_llm_done(self, result: LLMResult) -> None:
@@ -840,7 +840,7 @@ class App(QObject):
             if ai_skipped:
                 # a IA do modo NAO rodou — avisa em vez de fingir sucesso
                 why = {"offline": "Ollama offline",
-                       "no_model": "modelo de IA não baixado",
+                       "no_model": "modelo não baixado",
                        "error": "erro na IA"}.get(reason, "IA indisponível")
                 self._overlay.show_pasted_no_ai(why)
             else:
@@ -1017,7 +1017,7 @@ class App(QObject):
             threading.Thread(
                 target=self._prepare_audio, daemon=True, name="audio-prepare"
             ).start()
-        self._set_status("loading", "preparando ditado...")
+        self._set_status("loading", "preparando o ditado…")
         self._restart_idle()
         if notify:
             self._tray.notify(

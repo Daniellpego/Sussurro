@@ -13,6 +13,7 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 from sussurro.llm.modes import ModeStore
 from sussurro.ui import components as kit
 from sussurro.ui import theme
+from sussurro.ui.components import nav_icons
 from sussurro.ui.components.chevron import Chevron
 
 _M = 22         # margem pra sombra
@@ -39,11 +40,28 @@ class _Dot(QWidget):
         p.drawEllipse(self.rect())
 
 
+class _Icon(QWidget):
+    """Ícone de linha 16px à esquerda de cada item do menu."""
+
+    def __init__(self, key: str, color: str, parent=None) -> None:
+        super().__init__(parent)
+        self._key = key
+        self._color = color
+        self.setFixedSize(16, 16)
+
+    def paintEvent(self, e: QPaintEvent) -> None:  # noqa: N802
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        nav_icons.paint(p, self._key, QRectF(0, 0, 16, 16),
+                        theme.qcolor(self._color), 1.5)
+
+
 class _Row(QWidget):
     clicked = Signal()
 
     def __init__(self, label: str, color: str, *, right: QWidget | None = None,
-                 highlight: bool = False, parent=None) -> None:
+                 highlight: bool = False, icon: str | None = None,
+                 icon_color: str | None = None, parent=None) -> None:
         super().__init__(parent)
         self.setObjectName("PopRow")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -54,8 +72,11 @@ class _Row(QWidget):
             f"QWidget#PopRow {{ background: {base}; border-radius: 8px; }}"
             f"QWidget#PopRow:hover {{ background: {hover}; }}")
         lay = QHBoxLayout(self)
-        lay.setContentsMargins(11, 8, 11, 8)
-        lay.setSpacing(6)
+        lay.setContentsMargins(10, 8, 11, 8)
+        lay.setSpacing(10)
+        if icon is not None:
+            lay.addWidget(_Icon(icon, icon_color or color), 0,
+                          Qt.AlignmentFlag.AlignVCenter)
         lbl = QLabel(label)
         lbl.setFont(theme.qfont(13, theme.W_MEDIUM))
         lbl.setStyleSheet(f"color: {color}; background: transparent;")
@@ -137,12 +158,12 @@ class TrayPopup(QWidget):
         hl.setContentsMargins(11, 9, 11, 9)
         hl.setSpacing(10)
         hl.addWidget(kit.BrandMark(28), 0, Qt.AlignmentFlag.AlignVCenter)
-        col = QVBoxLayout(); col.setSpacing(2)
+        col = QVBoxLayout(); col.setContentsMargins(0, 0, 0, 0); col.setSpacing(3)
         name = QLabel("Sussurro")
         name.setFont(theme.qfont(13, theme.W_SEMIBOLD))
         name.setStyleSheet(f"color: {pal.text_primary}; background: transparent;")
         col.addWidget(name)
-        st = QHBoxLayout(); st.setSpacing(5)
+        st = QHBoxLayout(); st.setContentsMargins(0, 0, 0, 0); st.setSpacing(5)
         st.addWidget(_Dot(self._status[0], 5), 0, Qt.AlignmentFlag.AlignVCenter)
         stl = QLabel(self._status[1])
         stl.setFont(theme.qfont(11, theme.W_MEDIUM))
@@ -165,15 +186,17 @@ class TrayPopup(QWidget):
         mv.setStyleSheet(f"color: {pal.text_secondary}; background: transparent;")
         rl.addWidget(mv)
         rl.addWidget(Chevron(arm=5), 0, Qt.AlignmentFlag.AlignVCenter)
-        row_mode = _Row("Modo", pal.text_primary, right=right, highlight=True)
+        row_mode = _Row("Modo", pal.text_primary, right=right, highlight=True,
+                        icon="modos", icon_color=pal.text_secondary)
         row_mode.clicked.connect(self._show_modes)
         lay.addWidget(row_mode)
         lay.addWidget(self._divider(divider))
 
-        for label, sig in (("Abrir janela", self.open_window),
-                           ("Histórico", self.open_history),
-                           ("Ajustes", self.open_settings)):
-            r = _Row(label, pal.text_primary if pal.is_dark else theme.POPUP_TEXT_LIGHT)
+        text_color = pal.text_primary if pal.is_dark else theme.POPUP_TEXT_LIGHT
+        for label, icon, sig in (("Abrir janela", "janela", self.open_window),
+                                 ("Histórico", "historico", self.open_history),
+                                 ("Ajustes", "ajustes", self.open_settings)):
+            r = _Row(label, text_color, icon=icon, icon_color=pal.text_secondary)
             r.clicked.connect(lambda s=sig: (s.emit(), self.close()))
             lay.addWidget(r)
         lay.addWidget(self._divider(divider))
@@ -181,16 +204,15 @@ class TrayPopup(QWidget):
         # Interruptor de memória: Ativar = pode ditar (e gastar VRAM).
         # Desativar = solta Whisper/Qwen da GPU e fica leve na bandeja.
         if self._paused:
-            pause_label = "Ativar Sussurro"
-            pause_color = pal.state(theme.READY)
+            rp = _Row("Retomar ditado", pal.state(theme.READY),
+                      icon="retomar")
         else:
-            pause_label = "Desativar · economizar memória"
-            pause_color = pal.text_primary if pal.is_dark else theme.POPUP_TEXT_LIGHT
-        rp = _Row(pause_label, pause_color)
+            rp = _Row("Pausar e liberar memória", text_color,
+                      icon="pausar", icon_color=pal.text_secondary)
         rp.clicked.connect(lambda: (self.toggle_pause.emit(), self.close()))
         lay.addWidget(rp)
 
-        rq = _Row("Sair", pal.state_text(theme.ERROR))
+        rq = _Row("Sair", pal.state_text(theme.ERROR), icon="sair")
         rq.clicked.connect(lambda: (self.quit_app.emit(), self.close()))
         lay.addWidget(rq)
 

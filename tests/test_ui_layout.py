@@ -44,3 +44,55 @@ def test_history_preview_is_short_and_single_paragraph() -> None:
     out = _preview(long)
     assert out.endswith("…")
     assert len(out) <= _PREVIEW_CHARS + 1
+
+
+def test_no_placeholder_features_in_the_ui() -> None:
+    """Nada de controles "em breve": cada item da interface precisa funcionar."""
+    from pathlib import Path
+
+    ui = Path(__file__).resolve().parents[1] / "sussurro" / "ui"
+    offenders = [
+        f.name for f in ui.rglob("*.py")
+        if "em breve" in f.read_text(encoding="utf-8").lower()
+        and f.name != "settings_ui.py"  # só na docstring que explica a regra
+    ]
+    assert offenders == []
+
+
+def test_read_only_value_row_ignores_clicks() -> None:
+    from PySide6.QtCore import QPointF, Qt
+    from PySide6.QtGui import QMouseEvent
+
+    from sussurro.ui.components import ValueRow
+
+    row = ValueRow("Atalho de teclado", "Ctrl + Win", interactive=False)
+    clicks: list[bool] = []
+    row.clicked.connect(lambda: clicks.append(True))
+    row.resize(300, 40)
+    pos = QPointF(10, 10)
+    event = QMouseEvent(QMouseEvent.Type.MouseButtonRelease, pos, pos,
+                        Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton,
+                        Qt.KeyboardModifier.NoModifier)
+    row.mouseReleaseEvent(event)
+    assert clicks == []
+    assert row._chevron.isHidden()  # noqa: SLF001
+
+
+def test_main_window_reflects_changes_made_in_settings(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    from sussurro.llm.modes import ModeStore
+    from sussurro.storage.config import Config
+    from sussurro.storage.history import History
+    from sussurro.ui import labels
+    from sussurro.ui.window import MainWindow
+
+    cfg = Config()
+    win = MainWindow(cfg, History(), ModeStore.load())
+    try:
+        cfg.mic_device = "Microfone (USB Audio Device)"
+        cfg.language = "en"
+        win.sync_from_config()
+        assert "USB Audio" in win._mic_row._value._text  # noqa: SLF001
+        assert win._lang_row._value._text == labels.LANGUAGE["en"]  # noqa: SLF001
+    finally:
+        win.close()

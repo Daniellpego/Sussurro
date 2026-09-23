@@ -1,8 +1,9 @@
 """Janela principal (tela 01) — hub compacto, design "Sussurro Quiet".
 
 Frameless ~420px: title bar (wordmark) · hero (brand + status + atalho) ·
-grupo Configuração (Modo/Microfone/Idioma/Colar) · grupo de toggles · Recentes
-(clique copia) · footer (modelos + logs). O histórico completo abre num dialogo.
+grupo Ditado (Modo/Microfone/Idioma) · Recentes (clique copia) · footer
+(modelos + logs). O resto das opções fica nos Ajustes; o histórico completo
+abre num diálogo.
 
 Contrato com app.py preservado: construtor (config, history, mode_store=),
 signals close_to_tray/config_changed, métodos set_status/refresh_history.
@@ -26,7 +27,7 @@ from sussurro.llm.modes import ModeStore
 from sussurro.storage.config import Config
 from sussurro.storage.history import History
 from sussurro.ui import components as kit
-from sussurro.ui import theme
+from sussurro.ui import labels, theme
 from sussurro.ui.components.window_frame import FramelessWindow
 
 
@@ -38,21 +39,6 @@ def position_is_on_screen(x: int, y: int, screens) -> bool:
     """
     return any(rect.contains(x + 40, y + 16) for rect in screens)
 
-
-_LANG_LABELS: dict[str, str] = {
-    "pt": "Português", "en": "English", "auto": "Detectar",
-}
-_PASTE_LABELS: dict[str, str] = {
-    "auto": "Automático",
-    "ctrl+v": "Ctrl + V",
-    "shift+insert": "Shift + Insert",
-    "type": "Digitar",
-}
-_QUALITY_LABELS: dict[str, str] = {
-    "quality": "Qualidade",
-    "balanced": "Equilíbrio",
-    "light": "Leve",
-}
 
 # kind do set_status -> (token de estado | cor fixa)
 _STATUS_STATE = {
@@ -222,12 +208,10 @@ class MainWindow(FramelessWindow):
         content.addWidget(self._build_hero())
         content.addSpacing(18)
 
-        content.addWidget(_SectionLabel("Configuração"))
+        # só os ajustes do dia a dia; o resto fica em Ajustes (engrenagem)
+        content.addWidget(_SectionLabel("Ditado"))
         content.addSpacing(6)
         content.addWidget(self._build_config_group())
-        content.addSpacing(16)
-
-        content.addWidget(self._build_toggles_group())
         content.addSpacing(16)
 
         # Recentes header (label + link histórico)
@@ -264,15 +248,17 @@ class MainWindow(FramelessWindow):
         }}
         """)
         lay = QVBoxLayout(card)
-        lay.setContentsMargins(20, 22, 20, 22)
-        lay.setSpacing(14)
+        lay.setContentsMargins(20, 24, 20, 22)
+        lay.setSpacing(0)
         lay.setAlignment(Qt.AlignmentFlag.AlignHCenter)
 
         lay.addWidget(kit.BrandMark(46), 0, Qt.AlignmentFlag.AlignHCenter)
+        lay.addSpacing(14)
 
-        # nome + status
+        # nome + status (margens zeradas: o padrão do Qt somava ~22 px de vão)
         head = QVBoxLayout()
-        head.setSpacing(5)
+        head.setContentsMargins(0, 0, 0, 0)
+        head.setSpacing(6)
         head.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         name = QLabel("Sussurro")
         name.setFont(theme.qfont(19, theme.W_SEMIBOLD, tracking=theme.TRACK_TITLE))
@@ -280,6 +266,7 @@ class MainWindow(FramelessWindow):
         head.addWidget(name, 0, Qt.AlignmentFlag.AlignHCenter)
 
         status_row = QHBoxLayout()
+        status_row.setContentsMargins(0, 0, 0, 0)
         status_row.setSpacing(6)
         status_row.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         self._status_dot = _StatusDot()
@@ -293,9 +280,11 @@ class MainWindow(FramelessWindow):
         head.addWidget(sr, 0, Qt.AlignmentFlag.AlignHCenter)
         hw = QWidget(); hw.setLayout(head)
         lay.addWidget(hw, 0, Qt.AlignmentFlag.AlignHCenter)
+        lay.addSpacing(20)
 
         # keycaps
         keys = QHBoxLayout()
+        keys.setContentsMargins(0, 0, 0, 0)
         keys.setSpacing(7)
         keys.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         keys.addWidget(kit.Keycap("Ctrl"))
@@ -304,7 +293,7 @@ class MainWindow(FramelessWindow):
         plus.setStyleSheet(f"color: {pal.text_tertiary}; background: transparent;")
         keys.addWidget(plus)
         keys.addWidget(kit.Keycap("Win"))
-        hint = QLabel("segure pra falar")
+        hint = QLabel("segure para falar")
         hint.setFont(theme.qfont(12))
         hint.setStyleSheet(f"color: {pal.text_tertiary}; background: transparent;")
         keys.addSpacing(6)
@@ -330,39 +319,10 @@ class MainWindow(FramelessWindow):
         card.add_row(self._mic_row)
 
         self._lang_row = kit.ValueRow(
-            "Idioma", _LANG_LABELS.get(self._cfg.language, "Detectar"))
+            "Idioma", labels.LANGUAGE.get(self._cfg.language, "Português"))
         self._lang_row.clicked.connect(self._pick_lang)
         card.add_row(self._lang_row)
 
-        self._paste_row = kit.ValueRow(
-            "Colar", _PASTE_LABELS.get(self._cfg.paste_method, "Automático"))
-        self._paste_row.clicked.connect(self._pick_paste)
-        card.add_row(self._paste_row)
-
-        self._quality_row = kit.ValueRow(
-            "Qualidade ASR",
-            _QUALITY_LABELS.get(self._cfg.quality_preset, "Qualidade"))
-        self._quality_row.clicked.connect(self._pick_quality)
-        card.add_row(self._quality_row)
-
-        return card
-
-    def _build_toggles_group(self) -> QWidget:
-        card = kit.GroupCard()
-        self._tg_autostart = kit.ToggleRow(
-            "Iniciar com o Windows", self._cfg.autostart)
-        self._tg_autostart.toggled.connect(self._on_autostart)
-        card.add_row(self._tg_autostart)
-
-        self._tg_paste = kit.ToggleRow(
-            "Colar automaticamente", self._cfg.paste_after_transcribe)
-        self._tg_paste.toggled.connect(self._on_paste_toggle)
-        card.add_row(self._tg_paste)
-
-        self._tg_overlay = kit.ToggleRow(
-            "Mostrar overlay", self._cfg.show_overlay)
-        self._tg_overlay.toggled.connect(self._on_overlay_toggle)
-        card.add_row(self._tg_overlay)
         return card
 
     def _build_footer(self) -> QWidget:
@@ -418,7 +378,7 @@ class MainWindow(FramelessWindow):
     # --------------------------------------------------------------- pickers
 
     def _mic_label(self) -> str:
-        return self._cfg.mic_device or "Padrão do sistema"
+        return self._cfg.mic_device or labels.DEFAULT_MIC
 
     def _menu(self, anchor: QWidget, options, current, on_pick) -> None:
         pal = theme.palette()
@@ -472,10 +432,11 @@ class MainWindow(FramelessWindow):
             m.name, theme.mode_swatch(m.color, not theme.is_dark()))
 
     def sync_from_config(self) -> None:
-        """Re-sincroniza os 3 toggles rápidos com a config (sem emitir)."""
-        self._tg_autostart.set_checked(self._cfg.autostart, animate=False)
-        self._tg_paste.set_checked(self._cfg.paste_after_transcribe, animate=False)
-        self._tg_overlay.set_checked(self._cfg.show_overlay, animate=False)
+        """Reflete na janela o que mudou nos Ajustes (sem emitir sinais)."""
+        self.refresh_modes()
+        self._mic_row.set_value(self._mic_label())
+        self._lang_row.set_value(
+            labels.LANGUAGE.get(self._cfg.language, self._cfg.language))
 
     def retheme(self) -> None:
         """Re-tematiza a janela inteira (rebuild garante re-tema completo)."""
@@ -489,7 +450,7 @@ class MainWindow(FramelessWindow):
         self._build()
 
     def _pick_mic(self) -> None:
-        opts = [(None, "Padrão do sistema")]
+        opts = [(None, labels.DEFAULT_MIC)]
         opts.extend((name, name) for name in list_input_devices())
         self._menu(self._mic_row, opts, self._cfg.mic_device, self._set_mic)
 
@@ -500,53 +461,13 @@ class MainWindow(FramelessWindow):
         self.config_changed.emit()
 
     def _pick_lang(self) -> None:
-        opts = list(_LANG_LABELS.items())
+        opts = list(labels.LANGUAGE.items())
         self._menu(self._lang_row, opts, self._cfg.language, self._set_lang)
 
     def _set_lang(self, value: str) -> None:
         self._cfg.language = value
         self._cfg.save()
-        self._lang_row.set_value(_LANG_LABELS.get(value, "Detectar"))
-        self.config_changed.emit()
-
-    def _pick_paste(self) -> None:
-        opts = list(_PASTE_LABELS.items())
-        self._menu(self._paste_row, opts, self._cfg.paste_method, self._set_paste)
-
-    def _set_paste(self, value: str) -> None:
-        self._cfg.paste_method = value
-        self._cfg.save()
-        self._paste_row.set_value(_PASTE_LABELS.get(value, "Automático"))
-        self.config_changed.emit()
-
-    def _pick_quality(self) -> None:
-        opts = list(_QUALITY_LABELS.items())
-        self._menu(self._quality_row, opts, self._cfg.quality_preset,
-                   self._set_quality)
-
-    def _set_quality(self, value: str) -> None:
-        self._cfg.quality_preset = value
-        self._cfg.save()
-        self._quality_row.set_value(_QUALITY_LABELS.get(value, "Qualidade"))
-        self.config_changed.emit()
-
-    # --------------------------------------------------------------- toggles
-
-    def _on_autostart(self, checked: bool) -> None:
-        from sussurro.storage import autostart
-        autostart.set_enabled(checked)
-        self._cfg.autostart = checked
-        self._cfg.save()
-        self.config_changed.emit()
-
-    def _on_paste_toggle(self, checked: bool) -> None:
-        self._cfg.paste_after_transcribe = checked
-        self._cfg.save()
-        self.config_changed.emit()
-
-    def _on_overlay_toggle(self, checked: bool) -> None:
-        self._cfg.show_overlay = checked
-        self._cfg.save()
+        self._lang_row.set_value(labels.LANGUAGE.get(value, value))
         self.config_changed.emit()
 
     # ---------------------------------------------------------------- dialogs

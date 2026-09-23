@@ -1,8 +1,7 @@
 """Ajustes (tela 05) — janela com sidebar de abas + conteúdo.
 
-Geral e Modos são funcionais de verdade; as outras abas fiam nos controles de
-config que JÁ existem (modelo Whisper, microfone, botão do mouse) e marcam o
-resto honestamente como "em breve" — nada de controle decorativo.
+Abas: Geral, Modelos, Modos, Entrada (microfone e atalhos), Dicionário e
+Sobre. Cada controle mexe numa configuração real; nada decorativo.
 
 Troca de tema (Aparência) é tratada pelo app (re-tematiza TODAS as janelas).
 """
@@ -25,7 +24,7 @@ from sussurro.audio.capture import list_input_devices
 from sussurro.llm.modes import ModeStore
 from sussurro.storage.config import Config
 from sussurro.ui import components as kit
-from sussurro.ui import theme
+from sussurro.ui import labels, theme
 from sussurro.ui.components import nav_icons
 from sussurro.ui.components.window_frame import FramelessWindow
 from sussurro.ui.modes_ui import ModeEditor, ModesManager
@@ -35,17 +34,30 @@ _TABS = (
     ("geral",      "Geral",      ("#7A7D86", "#9498A2")),
     ("modelos",    "Modelos",    ("#7C84FF", "#7C84FF")),
     ("modos",      "Modos",      "gradient"),
-    ("audio",      "Áudio",      ("#30D158", "#34C759")),
-    ("atalhos",    "Atalhos",    ("#0A84FF", "#0A84FF")),
+    ("entrada",    "Entrada",    ("#30D158", "#34C759")),
     ("dicionario", "Dicionário", ("#FBBF24", "#F5A623")),
     ("sobre",      "Sobre",      ("#52555D", "#9DA0A8")),
 )
 
 _WHISPER_MODELS = ("tiny", "base", "small", "medium", "large-v3", "large-v3-turbo")
-_MOUSE_LABELS = {
-    "none": "Nenhum", "middle": "Botão do meio",
-    "x1": "Lateral (voltar)", "x2": "Lateral (avançar)",
-}
+# ícone da sidebar por aba (a aba Entrada usa o microfone)
+_TAB_ICONS = {"entrada": "audio"}
+
+
+_REPO_URL = "https://github.com/Daniellpego/Sussurro"
+
+
+def _open_url(url: str) -> None:
+    import webbrowser
+    webbrowser.open(url)
+
+
+def _open_data_dir() -> None:
+    from PySide6.QtCore import QUrl
+    from PySide6.QtGui import QDesktopServices
+
+    from sussurro.storage.paths import app_data_dir
+    QDesktopServices.openUrl(QUrl.fromLocalFile(str(app_data_dir())))
 
 
 def _glyph_color(hexc: str) -> QColor:
@@ -83,8 +95,8 @@ class _TabTile(QWidget):
         p.drawRoundedRect(rect, 7.5, 7.5)
         inset = 5.0
         nav_icons.paint(
-            p, self._key, QRectF(inset, inset, s - 2 * inset, s - 2 * inset),
-            glyph, 1.7)
+            p, _TAB_ICONS.get(self._key, self._key),
+            QRectF(inset, inset, s - 2 * inset, s - 2 * inset), glyph, 1.7)
 
 
 class _TabRow(QWidget):
@@ -204,8 +216,7 @@ class SettingsWindow(FramelessWindow):
             "geral": self._pane_geral,
             "modelos": self._pane_modelos,
             "modos": self._pane_modos,
-            "audio": self._pane_audio,
-            "atalhos": self._pane_atalhos,
+            "entrada": self._pane_entrada,
             "dicionario": self._pane_dicionario,
             "sobre": self._pane_sobre,
         }[key]()
@@ -309,14 +320,20 @@ class SettingsWindow(FramelessWindow):
         self._tg_paste.toggled.connect(
             lambda v: self._set("paste_after_transcribe", v))
         beh.add_row(self._tg_paste)
-        self._tg_overlay = kit.ToggleRow("Mostrar overlay (HUD)", self._cfg.show_overlay)
+        self._row_paste = kit.ValueRow(
+            "Método de colagem",
+            labels.PASTE_METHOD.get(self._cfg.paste_method, "Automático"))
+        self._row_paste.clicked.connect(self._pick_paste)
+        beh.add_row(self._row_paste)
+        self._tg_overlay = kit.ToggleRow(
+            "Mostrar indicador de gravação", self._cfg.show_overlay)
         self._tg_overlay.toggled.connect(lambda v: self._set("show_overlay", v))
         beh.add_row(self._tg_overlay)
-        self._tg_sound = kit.ToggleRow("Sons de feedback (gravar/concluir)", self._cfg.play_sound)
+        self._tg_sound = kit.ToggleRow("Sons ao gravar e ao colar", self._cfg.play_sound)
         self._tg_sound.toggled.connect(lambda v: self._set("play_sound", v))
         beh.add_row(self._tg_sound)
         self._tg_automode = kit.ToggleRow(
-            "Modo automático pelo app em foco", self._cfg.auto_mode)
+            "Escolher o modo pelo app em foco", self._cfg.auto_mode)
         self._tg_automode.toggled.connect(lambda v: self._set("auto_mode", v))
         beh.add_row(self._tg_automode)
         self._tg_vcmd = kit.ToggleRow(
@@ -326,32 +343,7 @@ class SettingsWindow(FramelessWindow):
         beh.add_row(self._tg_vcmd)
         col.addWidget(self._section("Comportamento", beh))
 
-        # Atualizações (versão real; auto-update é futuro)
-        upd = kit.GroupCard()
-        upd.add_row(self._version_row())
-        col.addWidget(self._section("Atualizações", upd))
-
         return self._scroll_pane(inner)
-
-    def _version_row(self) -> QWidget:
-        pal = theme.palette()
-        row = QWidget()
-        row.setStyleSheet("background: transparent;")
-        lay = QHBoxLayout(row)
-        lay.setContentsMargins(14, 11, 14, 11)
-        col = QVBoxLayout(); col.setSpacing(2)
-        v = QLabel(f"Versão {__version__}")
-        v.setFont(theme.qfont(13.5, theme.W_MEDIUM))
-        v.setStyleSheet(f"color: {pal.text_primary}; background: transparent;")
-        col.addWidget(v)
-        sub = QLabel("verificação de atualizações em breve")
-        sub.setFont(theme.qfont(11.5, theme.W_MEDIUM, mono=True))
-        sub.setStyleSheet(f"color: {pal.text_mono_dim}; background: transparent;")
-        col.addWidget(sub)
-        lay.addLayout(col)
-        lay.addStretch(1)
-        lay.addWidget(self._soon_badge())
-        return row
 
     # --- Modos (gerenciador plugado) ---
     def _pane_modos(self) -> QWidget:
@@ -384,23 +376,19 @@ class SettingsWindow(FramelessWindow):
         self._row_model = kit.ValueRow("Modelo Whisper", self._cfg.model_size)
         self._row_model.clicked.connect(self._pick_model)
         asr.add_row(self._row_model)
-        _q_labels = {
-            "quality": "Qualidade", "balanced": "Equilíbrio", "light": "Leve",
-        }
+        self._row_lang = kit.ValueRow(
+            "Idioma", labels.LANGUAGE.get(self._cfg.language, "Português"))
+        self._row_lang.clicked.connect(self._pick_lang)
+        asr.add_row(self._row_lang)
         self._row_quality = kit.ValueRow(
             "Perfil de qualidade",
-            _q_labels.get(self._cfg.quality_preset, "Qualidade"))
+            labels.QUALITY.get(self._cfg.quality_preset, "Qualidade"))
         self._row_quality.clicked.connect(self._pick_quality)
         asr.add_row(self._row_quality)
         asr.add_row(self._note_row(
-            "Qualidade = melhor acento/termos. Leve = mais rápido. "
-            "Se a GPU falhar, cai pra CPU sozinho."))
-        col.addWidget(self._section("Reconhecimento (Whisper)", asr))
-
-        llm = kit.GroupCard()
-        llm.add_row(self._custom_row_soon("Modelo LLM (Ollama)"))
-        llm.add_row(self._custom_row_soon("Detecção de GPU / VRAM"))
-        col.addWidget(self._section("Processamento (LLM)", llm))
+            "Qualidade acerta melhor acentos e termos; Leve é mais rápido. "
+            "Se a GPU falhar, a transcrição passa para a CPU sozinha."))
+        col.addWidget(self._section("Transcrição", asr))
 
         # Desempenho / VRAM / RAM
         # Regra de ouro: NADA aqui troca o modelo Whisper por um pior.
@@ -448,15 +436,10 @@ class SettingsWindow(FramelessWindow):
             lambda v: self._set("ollama_unload_on_quit", v))
         perf.add_row(self._tg_ollama_quit)
 
-        _ka = {
-            "0": "Na hora (recomendado)",
-            "5m": "5 minutos",
-            "10m": "10 minutos",
-            "30m": "30 minutos",
-        }
         self._row_keep = kit.ValueRow(
-            "Manter Qwen na VRAM após Clean",
-            _ka.get(self._cfg.ollama_keep_alive, self._cfg.ollama_keep_alive))
+            "Manter a IA na memória após usar",
+            labels.KEEP_ALIVE.get(self._cfg.ollama_keep_alive,
+                                  self._cfg.ollama_keep_alive))
         self._row_keep.clicked.connect(self._pick_keep_alive)
         perf.add_row(self._row_keep)
         perf.add_row(self._note_row(
@@ -479,52 +462,40 @@ class SettingsWindow(FramelessWindow):
         self.config_changed.emit()
 
     def _pick_keep_alive(self) -> None:
-        opts = [
-            ("0", "Na hora (recomendado)"),
-            ("5m", "5 minutos"),
-            ("10m", "10 minutos"),
-            ("30m", "30 minutos"),
-        ]
-        self._menu(self._row_keep, opts, self._cfg.ollama_keep_alive,
-                   self._set_keep_alive)
+        self._menu(self._row_keep, list(labels.KEEP_ALIVE.items()),
+                   self._cfg.ollama_keep_alive, self._set_keep_alive)
 
     def _set_keep_alive(self, value: str) -> None:
         self._cfg.ollama_keep_alive = value
         self._cfg.save()
-        labels = {
-            "0": "Na hora (recomendado)", "5m": "5 minutos",
-            "10m": "10 minutos", "30m": "30 minutos",
-        }
-        self._row_keep.set_value(labels.get(value, value))
+        self._row_keep.set_value(labels.KEEP_ALIVE.get(value, value))
         self.config_changed.emit()
 
-    # --- Áudio ---
-    def _pane_audio(self) -> QWidget:
+    # --- Entrada (microfone e atalhos) ---
+    def _pane_entrada(self) -> QWidget:
         inner = QWidget()
         col = QVBoxLayout(inner); col.setContentsMargins(0, 0, 0, 0); col.setSpacing(18)
-        card = kit.GroupCard()
-        self._row_mic = kit.ValueRow(
-            "Microfone", self._cfg.mic_device or "Padrão do sistema")
-        self._row_mic.clicked.connect(self._pick_mic)
-        card.add_row(self._row_mic)
-        card.add_row(self._custom_row_soon("Sensibilidade / VAD"))
-        col.addWidget(self._section("Entrada de áudio", card))
-        return self._scroll_pane(inner)
 
-    # --- Atalhos ---
-    def _pane_atalhos(self) -> QWidget:
-        inner = QWidget()
-        col = QVBoxLayout(inner); col.setContentsMargins(0, 0, 0, 0); col.setSpacing(18)
-        card = kit.GroupCard()
-        ptt = kit.ValueRow("Push-to-talk", self._cfg.hotkey_label)
-        ptt.setEnabled(False)
-        card.add_row(ptt)
+        mic = kit.GroupCard()
+        self._row_mic = kit.ValueRow(
+            "Microfone", self._cfg.mic_device or labels.DEFAULT_MIC)
+        self._row_mic.clicked.connect(self._pick_mic)
+        mic.add_row(self._row_mic)
+        col.addWidget(self._section("Microfone", mic))
+
+        keys = kit.GroupCard()
+        keys.add_row(kit.ValueRow(
+            "Atalho de teclado", self._cfg.hotkey_label.replace("+", " + "),
+            interactive=False))
         self._row_mouse = kit.ValueRow(
-            "Botão do mouse", _MOUSE_LABELS.get(self._cfg.mouse_button, "Nenhum"))
+            "Botão do mouse",
+            labels.MOUSE_BUTTON.get(self._cfg.mouse_button, "Nenhum"))
         self._row_mouse.clicked.connect(self._pick_mouse)
-        card.add_row(self._row_mouse)
-        card.add_row(self._custom_row_soon("Atalho por modo"))
-        col.addWidget(self._section("Gravação", card))
+        keys.add_row(self._row_mouse)
+        keys.add_row(self._note_row(
+            "Segure para falar e solte para colar. Para cancelar, aperte "
+            "qualquer outra tecla enquanto segura."))
+        col.addWidget(self._section("Gravação", keys))
         return self._scroll_pane(inner)
 
     # --- Dicionário ---
@@ -685,37 +656,22 @@ class SettingsWindow(FramelessWindow):
         tag.setFont(theme.qfont(13))
         tag.setStyleSheet(f"color: {pal.text_secondary};")
         col.addWidget(tag, 0, Qt.AlignmentFlag.AlignHCenter)
+        col.addSpacing(10)
+
+        links = QHBoxLayout()
+        links.setSpacing(18)
+        links.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        for text, action in (
+            ("Código-fonte", lambda: _open_url(_REPO_URL)),
+            ("Novidades", lambda: _open_url(f"{_REPO_URL}/releases")),
+            ("Pasta de dados", _open_data_dir),
+        ):
+            btn = kit.GhostButton(text, accent=True)
+            btn.clicked.connect(action)
+            links.addWidget(btn)
+        lw = QWidget(); lw.setLayout(links)
+        col.addWidget(lw, 0, Qt.AlignmentFlag.AlignHCenter)
         return self._scroll_pane(inner)
-
-    # --- placeholders / soon ---
-    def _pane_placeholder(self, title: str, subtitle: str) -> QWidget:
-        pal = theme.palette()
-        inner = QWidget()
-        col = QVBoxLayout(inner)
-        col.setContentsMargins(0, 40, 0, 0)
-        col.setSpacing(8)
-        col.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        t = QLabel(title)
-        t.setFont(theme.qfont(16, theme.W_SEMIBOLD))
-        t.setStyleSheet(f"color: {pal.text_secondary};")
-        col.addWidget(t, 0, Qt.AlignmentFlag.AlignHCenter)
-        s = QLabel(subtitle + "  ·  em breve")
-        s.setFont(theme.qfont(12.5))
-        s.setStyleSheet(f"color: {pal.text_tertiary};")
-        col.addWidget(s, 0, Qt.AlignmentFlag.AlignHCenter)
-        return self._scroll_pane(inner)
-
-    def _soon_badge(self) -> QLabel:
-        pal = theme.palette()
-        b = QLabel("em breve")
-        b.setFont(theme.qfont(10, theme.W_SEMIBOLD, mono=True))
-        b.setStyleSheet(
-            f"color: {pal.text_tertiary}; background: {pal.inset}; "
-            f"border-radius: 6px; padding: 3px 8px;")
-        return b
-
-    def _custom_row_soon(self, label: str) -> QWidget:
-        return self._custom_row(label, self._soon_badge())
 
     def _note_row(self, text: str) -> QWidget:
         pal = theme.palette()
@@ -767,42 +723,54 @@ class SettingsWindow(FramelessWindow):
         self.config_changed.emit()
 
     def _pick_quality(self) -> None:
-        opts = [
-            ("quality", "Qualidade"),
-            ("balanced", "Equilíbrio"),
-            ("light", "Leve"),
-        ]
-        self._menu(self._row_quality, opts, self._cfg.quality_preset,
-                   self._set_quality)
+        self._menu(self._row_quality, list(labels.QUALITY.items()),
+                   self._cfg.quality_preset, self._set_quality)
 
     def _set_quality(self, value: str) -> None:
         self._cfg.quality_preset = value
         self._cfg.save()
-        labels = {
-            "quality": "Qualidade", "balanced": "Equilíbrio", "light": "Leve",
-        }
-        self._row_quality.set_value(labels.get(value, "Qualidade"))
+        self._row_quality.set_value(labels.QUALITY.get(value, "Qualidade"))
+        self.config_changed.emit()
+
+    def _pick_lang(self) -> None:
+        self._menu(self._row_lang, list(labels.LANGUAGE.items()),
+                   self._cfg.language, self._set_lang)
+
+    def _set_lang(self, value: str) -> None:
+        self._cfg.language = value
+        self._cfg.save()
+        self._row_lang.set_value(labels.LANGUAGE.get(value, value))
+        self.config_changed.emit()
+
+    def _pick_paste(self) -> None:
+        self._menu(self._row_paste, list(labels.PASTE_METHOD.items()),
+                   self._cfg.paste_method, self._set_paste)
+
+    def _set_paste(self, value: str) -> None:
+        self._cfg.paste_method = value
+        self._cfg.save()
+        self._row_paste.set_value(labels.PASTE_METHOD.get(value, value))
         self.config_changed.emit()
 
     def _pick_mic(self) -> None:
-        opts = [(None, "Padrão do sistema")]
+        opts = [(None, labels.DEFAULT_MIC)]
         opts.extend((name, name) for name in list_input_devices())
         self._menu(self._row_mic, opts, self._cfg.mic_device, self._set_mic)
 
     def _set_mic(self, value) -> None:
         self._cfg.mic_device = value
         self._cfg.save()
-        self._row_mic.set_value(value or "Padrão do sistema")
+        self._row_mic.set_value(value or labels.DEFAULT_MIC)
         self.config_changed.emit()
 
     def _pick_mouse(self) -> None:
-        self._menu(self._row_mouse, list(_MOUSE_LABELS.items()),
+        self._menu(self._row_mouse, list(labels.MOUSE_BUTTON.items()),
                    self._cfg.mouse_button, self._set_mouse)
 
     def _set_mouse(self, value: str) -> None:
         self._cfg.mouse_button = value
         self._cfg.save()
-        self._row_mouse.set_value(_MOUSE_LABELS.get(value, "Nenhum"))
+        self._row_mouse.set_value(labels.MOUSE_BUTTON.get(value, "Nenhum"))
         self.config_changed.emit()
 
     # ------------------------------------------------------------- sync/retheme
@@ -827,6 +795,16 @@ class SettingsWindow(FramelessWindow):
         ):
             if tg is not None:
                 tg.set_checked(getattr(self._cfg, attr), animate=False)
+        # linhas de valor que também podem mudar pela janela principal
+        for row, value in (
+            (getattr(self, "_row_mic", None), self._cfg.mic_device or labels.DEFAULT_MIC),
+            (getattr(self, "_row_lang", None),
+             labels.LANGUAGE.get(self._cfg.language, self._cfg.language)),
+            (getattr(self, "_row_quality", None),
+             labels.QUALITY.get(self._cfg.quality_preset, "Qualidade")),
+        ):
+            if row is not None:
+                row.set_value(value)
 
     def retheme(self) -> None:
         cur = self._current
