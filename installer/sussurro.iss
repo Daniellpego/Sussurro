@@ -65,7 +65,7 @@ Source: "..\dist\Sussurro\Sussurro.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\dist\Sussurro\_internal\*"; DestDir: "{app}\_internal"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Documentação e Licenças
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\README.pt-BR.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\README.en.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\docs\THIRD_PARTY_LICENSES.md"; DestDir: "{app}"; Flags: ignoreversion
 

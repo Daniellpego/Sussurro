@@ -14,7 +14,7 @@ Este arquivo registra as mudanças relevantes de cada versão. O formato segue [
 
 - O microfone permanece preparado com um pré-buffer de 300 ms enquanto o app está ativo.
 - O modelo de transcrição é carregado e aquecido antes de o atalho ser habilitado.
-- O README principal passa a ser em inglês, com a versão em português em `README.pt-BR.md`.
+- Adicionada uma versão em inglês do README em `README.en.md`, com aviso sobre o SmartScreen nas duas versões.
 - As notas de cada release são extraídas deste CHANGELOG, e o workflow de release falha se a tag não corresponder à versão do pacote.
 
 ## [0.1.1] - 2026-09-01
