@@ -4,6 +4,20 @@ Este arquivo registra as mudanças relevantes de cada versão. O formato segue [
 
 ## [Não lançado]
 
+### Adicionado
+
+- O editor de modos permite escolher o modelo do Ollama de cada modo.
+
+### Alterado
+
+- HUD de gravação mais limpo: só a onda de voz numa pílula compacta, sem ponto de gravação, cronômetro, brilho ou texto. A transcrição parcial ao vivo foi removida, e "Transcrevendo" mostra só a animação de pontos.
+- Sombra do HUD suave, sem o recorte retangular nas bordas.
+- A descrição do modo Raw deixa claro que ele aplica dicionário, pontuação e comandos de voz, mesmo sem IA.
+
+### Corrigido
+
+- Abrir o Sussurro com ele já aberto iniciava uma segunda instância, e as duas digitavam o mesmo texto com as letras embaralhadas. Agora o segundo clique só mostra a janela que já está aberta.
+
 ## [0.1.2] - 2026-09-23
 
 ### Adicionado
