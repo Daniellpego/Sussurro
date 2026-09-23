@@ -1,6 +1,6 @@
 # Licenças e Atribuições de Terceiros (Third-Party Licenses)
 
-O **SUSURRO** é distribuído sob a Licença MIT (Copyright (c) 2026 Susurro Oficial).
+O **Sussurro** é distribuído sob a Licença MIT (Copyright (c) 2026 Susurro Oficial).
 Esta aplicação incorpora, empacota ou interage com as seguintes tecnologias e bibliotecas de código aberto:
 
 ---
