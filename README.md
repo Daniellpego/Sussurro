@@ -5,7 +5,8 @@
 # Sussurro
 
 **Ditado por voz local e privado para Windows.**<br>
-Segure um atalho, fale e solte: o texto aparece no aplicativo em foco.
+Segure um atalho, fale e solte: o texto aparece no aplicativo em foco.<br>
+Uma alternativa gratuita, offline e de código aberto ao Wispr Flow, feita para o português do Brasil.
 
 [![CI](https://github.com/Daniellpego/Sussurro/actions/workflows/ci.yml/badge.svg)](https://github.com/Daniellpego/Sussurro/actions/workflows/ci.yml)
 [![Versão](https://img.shields.io/github/v/release/Daniellpego/Sussurro?label=vers%C3%A3o)](https://github.com/Daniellpego/Sussurro/releases/latest)
@@ -32,6 +33,17 @@ Segure um atalho, fale e solte: o texto aparece no aplicativo em foco.
 - **Funciona em qualquer aplicativo.** O texto é colado na janela ativa e a área de transferência é restaurada depois.
 - **Feito para o português do Brasil.** Pontuação falada, dicionário pessoal e macros para siglas ditas por extenso, como “esse tê efe” → STF e “ce pê éfe” → CPF.
 - **Revisão com IA local, se você quiser.** Modos que limpam, formalizam, resumem ou traduzem o texto rodam no Ollama, também no seu computador.
+
+## Sussurro e os serviços de ditado na nuvem
+
+| | Sussurro | Serviço de ditado na nuvem |
+|---|---|---|
+| Onde o áudio é processado | No seu computador | Nos servidores da empresa |
+| Preço | Gratuito, licença MIT | Em geral, assinatura mensal |
+| Funciona sem internet depois de instalado | Sim | Não |
+| Revisão com IA | Modelo local pelo Ollama, opcional | Modelo da empresa, na nuvem |
+| Código-fonte | Aberto | Fechado |
+| Português do Brasil | Comandos de voz, siglas e modos jurídico e médico | Depende do serviço |
 
 ## Instalação
 
