@@ -145,7 +145,7 @@ Os modos com IA precisam do Ollama. Você pode editar esses modos e criar os seu
 
 ## Privacidade
 
-O Sussurro não envia o que você fala para nenhum servidor. A internet só é usada para baixar os modelos na primeira execução. Configurações, histórico, dicionário e modos ficam em `%APPDATA%\Sussurro` e são mantidos se você desinstalar o programa.
+O Sussurro não envia o que você fala para nenhum servidor. A internet só é usada para baixar os modelos na primeira execução e, se a opção estiver ligada nos Ajustes, para consultar a página de releases do GitHub e avisar quando sai uma versão nova. Configurações, histórico, dicionário e modos ficam em `%APPDATA%\Sussurro` e são mantidos se você desinstalar o programa.
 
 ## Desenvolvimento
 

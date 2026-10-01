@@ -42,6 +42,8 @@ class Tray(QObject):
         self._status_kind = "loading"
         self._popup: TrayPopup | None = None
         self._tray.activated.connect(self._on_activated)
+        self._on_message_click = None
+        self._tray.messageClicked.connect(self._message_clicked)
 
     # ------------------------------------------------------------------- API
 
@@ -52,9 +54,16 @@ class Tray(QObject):
         self._tray.hide()
 
     def notify(self, title: str, message: str,
-               kind: QSystemTrayIcon.MessageIcon | None = None) -> None:
+               kind: QSystemTrayIcon.MessageIcon | None = None,
+               on_click=None, msecs: int = 2500) -> None:
         icon = kind or QSystemTrayIcon.MessageIcon.Information
-        self._tray.showMessage(title, message, icon, 2500)
+        self._on_message_click = on_click
+        self._tray.showMessage(title, message, icon, msecs)
+
+    def _message_clicked(self) -> None:
+        cb, self._on_message_click = self._on_message_click, None
+        if cb is not None:
+            cb()
 
     def set_status(self, kind: str) -> None:
         self._status_kind = kind
