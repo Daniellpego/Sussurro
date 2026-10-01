@@ -49,6 +49,19 @@ def test_store_roundtrip_is_atomic(monkeypatch, tmp_path: Path) -> None:
     assert not (tmp_path / "modes.json.tmp").exists()
 
 
+def test_old_raw_description_is_updated_without_touching_custom_text(monkeypatch, tmp_path: Path) -> None:
+    store = _temp_store(monkeypatch, tmp_path)
+    store.get("raw").description = "Texto verbatim, sem IA"
+    store.save()
+
+    assert ModeStore.load().get("raw").description == "Sem IA; aplica dicionário e comandos"
+
+    store = ModeStore.load()
+    store.get("raw").description = "Minha descrição"
+    store.save()
+    assert ModeStore.load().get("raw").description == "Minha descrição"
+
+
 def test_unknown_mode_mutations_do_not_touch_fallback(monkeypatch, tmp_path: Path) -> None:
     store = _temp_store(monkeypatch, tmp_path)
     raw = store.get("raw")
