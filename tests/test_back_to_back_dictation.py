@@ -98,11 +98,11 @@ def test_stuck_win_key_does_not_start_recording(monkeypatch) -> None:
     started: list[float] = []
     ptt.pressed.connect(started.append)
     # o soltar do Win se perdeu (ex.: Win+L); fisicamente ele está solto
-    ptt._win = True
+    ptt._held[1] = True
     monkeypatch.setattr(ptt, "_physically_down", lambda vks: False)
     ptt._on_press(listener.keyboard.Key.ctrl_l)
     assert started == []
-    assert ptt._win is False
+    assert ptt._held == [True, False]
 
 
 # -------------------------------------------------------------- microfone

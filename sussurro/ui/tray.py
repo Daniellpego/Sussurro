@@ -37,7 +37,8 @@ class Tray(QObject):
         self._active_mode_getter = active_mode_getter
         self._icon: QIcon = brand_icon()
         self._tray = QSystemTrayIcon(self._icon)
-        self._tray.setToolTip("Sussurro — segure Ctrl+Win pra falar")
+        self._hotkey = "Ctrl+Win"
+        self._tray.setToolTip(f"Sussurro — segure {self._hotkey} pra falar")
         self._paused = False
         self._status_kind = "loading"
         self._popup: TrayPopup | None = None
@@ -56,12 +57,17 @@ class Tray(QObject):
         icon = kind or QSystemTrayIcon.MessageIcon.Information
         self._tray.showMessage(title, message, icon, 2500)
 
+    def set_hotkey(self, label: str) -> None:
+        """Atalho mostrado na dica da bandeja."""
+        self._hotkey = label
+        self.set_status(self._status_kind)
+
     def set_status(self, kind: str) -> None:
         self._status_kind = kind
         if kind == "paused":
             self._tray.setToolTip("Sussurro em espera — clique e ative pra falar")
         elif kind == "ready":
-            self._tray.setToolTip("Sussurro ativo — segure Ctrl+Win pra falar")
+            self._tray.setToolTip(f"Sussurro ativo — segure {self._hotkey} pra falar")
         elif kind == "loading":
             self._tray.setToolTip("Sussurro — carregando modelo…")
         else:

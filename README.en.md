@@ -82,7 +82,7 @@ The installers are not code-signed yet, so Windows may show “Windows protected
 ## Usage
 
 1. Start Sussurro. It lives in the system tray.
-2. Hold <kbd>Ctrl</kbd> + <kbd>Win</kbd> while you speak. A side mouse button can be used instead.
+2. Hold <kbd>Ctrl</kbd> + <kbd>Win</kbd> while you speak. You can pick another shortcut in Ajustes > Entrada (Settings > Input), or use a side mouse button.
 3. Release the keys. The text is transcribed and pasted at the cursor.
 
 <p align="center">

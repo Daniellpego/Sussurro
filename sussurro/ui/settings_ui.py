@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 
 from sussurro import __version__
 from sussurro.audio.capture import list_input_devices
+from sussurro.hotkey.presets import HOTKEY_LABELS, normalize_hotkey
 from sussurro.llm.modes import ModeStore
 from sussurro.storage.config import Config
 from sussurro.ui import components as kit
@@ -484,9 +485,10 @@ class SettingsWindow(FramelessWindow):
         col.addWidget(self._section("Microfone", mic))
 
         keys = kit.GroupCard()
-        keys.add_row(kit.ValueRow(
-            "Atalho de teclado", self._cfg.hotkey_label.replace("+", " + "),
-            interactive=False))
+        self._row_hotkey = kit.ValueRow(
+            "Atalho de teclado", self._hotkey_label())
+        self._row_hotkey.clicked.connect(self._pick_hotkey)
+        keys.add_row(self._row_hotkey)
         self._row_mouse = kit.ValueRow(
             "Botão do mouse",
             labels.MOUSE_BUTTON.get(self._cfg.mouse_button, "Nenhum"))
@@ -761,6 +763,19 @@ class SettingsWindow(FramelessWindow):
         self._cfg.mic_device = value
         self._cfg.save()
         self._row_mic.set_value(value or labels.DEFAULT_MIC)
+        self.config_changed.emit()
+
+    def _hotkey_label(self) -> str:
+        return HOTKEY_LABELS[normalize_hotkey(self._cfg.hotkey_label)]
+
+    def _pick_hotkey(self) -> None:
+        self._menu(self._row_hotkey, list(HOTKEY_LABELS.items()),
+                   normalize_hotkey(self._cfg.hotkey_label), self._set_hotkey)
+
+    def _set_hotkey(self, value: str) -> None:
+        self._cfg.hotkey_label = value
+        self._cfg.save()
+        self._row_hotkey.set_value(self._hotkey_label())
         self.config_changed.emit()
 
     def _pick_mouse(self) -> None:
