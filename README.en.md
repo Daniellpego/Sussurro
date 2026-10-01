@@ -98,7 +98,7 @@ Writing modes decide what happens to the text before it is pasted: Raw (no AI; a
 
 - Local transcription with `faster-whisper` and Whisper `large-v3-turbo`.
 - NVIDIA GPU with automatic fallback to CPU.
-- Live preview in the indicator during longer recordings.
+- Pick the push-to-talk shortcut, and get a tray notice when a new version is out.
 - Personal dictionary with suggested terms, and acronym macros (STF, STJ, OAB, CPF, CNPJ, RG).
 - Searchable history of up to 500 transcriptions.
 - Pasting that preserves the clipboard, including copied images and files.

@@ -4,6 +4,8 @@ Este arquivo registra as mudanças relevantes de cada versão. O formato segue [
 
 ## [Não lançado]
 
+## [0.1.3] - 2026-10-01
+
 ### Adicionado
 
 - Aviso de nova versão: o Sussurro consulta a página de releases do GitHub e mostra uma notificação na bandeja quando sai uma versão nova, uma vez por versão. Clicar abre a página para baixar. Dá para desligar em Ajustes > Geral.
@@ -111,7 +113,8 @@ Este arquivo registra as mudanças relevantes de cada versão. O formato segue [
 - Modos de revisão local pelo Ollama.
 - Histórico pesquisável e configurações pela bandeja do sistema.
 
-[Não lançado]: https://github.com/Daniellpego/Sussurro/compare/v0.1.2...HEAD
+[Não lançado]: https://github.com/Daniellpego/Sussurro/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/Daniellpego/Sussurro/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Daniellpego/Sussurro/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Daniellpego/Sussurro/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Daniellpego/Sussurro/releases/tag/v0.1.0

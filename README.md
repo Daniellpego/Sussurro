@@ -129,10 +129,10 @@ Os modos com IA precisam do Ollama. Você pode editar esses modos e criar os seu
 
 - Transcrição local com `faster-whisper` e o modelo Whisper `large-v3-turbo`.
 - GPU NVIDIA com volta automática para a CPU quando a GPU não está disponível.
-- Prévia do texto no indicador durante gravações longas.
 - Dicionário pessoal para nomes, marcas e jargões, com sugestões de termos novos.
 - Macros para siglas jurídicas e de documentos, como STF, STJ, OAB, CPF, CNPJ e RG.
 - Histórico pesquisável, com até 500 transcrições.
+- Atalho de gravação à sua escolha e aviso na bandeja quando sai uma versão nova.
 - Colagem que preserva a área de transferência, inclusive imagens e arquivos copiados.
 - Início com o Windows, tema claro e escuro e sons de confirmação opcionais.
 
