@@ -28,6 +28,7 @@ from sussurro.asr.whisper import (
 from sussurro.audio.capture import Recorder
 from sussurro.hotkey.listener import PushToTalkListener
 from sussurro.hotkey.mouse_listener import MouseButtonListener
+from sussurro.hotkey.presets import normalize_hotkey
 from sussurro.inject.paste import PasteResult, paste_text, wait_until_keyboard_free
 from sussurro.llm import modes as modes_mod
 from sussurro.llm.modes import ModeStore
@@ -83,7 +84,7 @@ class App(QObject):
             on_first_frame=self._on_audio_first_frame,
         )
         self._overlay = Overlay(level_source=lambda: self._recorder.level)
-        self._hotkey = PushToTalkListener()
+        self._hotkey = PushToTalkListener(self._cfg.hotkey_label)
         self._mouse_hotkey = MouseButtonListener(self._cfg.mouse_button)
         self._worker = WhisperWorker(
             model_size=self._cfg.model_size,
@@ -127,6 +128,8 @@ class App(QObject):
         self._window = MainWindow(self._cfg, self._history,
                                    mode_store=self._modes)
         self._tray = Tray(self._modes, lambda: self._mode)
+        self._tray.set_hotkey(normalize_hotkey(self._cfg.hotkey_label))
+        self._status = ("loading", "")
         self._settings = None  # janela de Ajustes (lazy)
         if self._paused:
             self._set_status("paused", "em espera · ative na bandeja")
@@ -920,6 +923,7 @@ class App(QObject):
 
     def _set_status(self, kind: str, msg: str) -> None:
         """Atualiza o status na janela e na bandeja juntos."""
+        self._status = (kind, msg)
         self._window.set_status(kind, msg)
         self._tray.set_status(kind)
 
@@ -1069,8 +1073,14 @@ class App(QObject):
                 threading.Thread(
                     target=self._prepare_audio, daemon=True, name="audio-prepare"
                 ).start()
-        # aplica troca do botao do mouse em runtime (sem restart)
+        # aplica troca do atalho e do botao do mouse em runtime (sem restart)
+        self._hotkey.set_hotkey(self._cfg.hotkey_label)
         self._mouse_hotkey.set_button(self._cfg.mouse_button)
+        self._tray.set_hotkey(normalize_hotkey(self._cfg.hotkey_label))
+        kind, msg = self._status
+        if kind == "ready":
+            msg = f"pronto · {self._cfg.trigger_label}"
+        self._set_status(kind, msg)  # a janela pode ter sido refeita
         self._overlay.set_mode(self._mode)
         self._restart_idle()  # liga/desliga o timer de VRAM conforme a config
         # mantem a janela de Ajustes em sincronia (mesma fonte de verdade)

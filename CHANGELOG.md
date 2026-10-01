@@ -7,6 +7,7 @@ Este arquivo registra as mudanças relevantes de cada versão. O formato segue [
 ### Adicionado
 
 - Aviso de nova versão: o Sussurro consulta a página de releases do GitHub e mostra uma notificação na bandeja quando sai uma versão nova, uma vez por versão. Clicar abre a página para baixar. Dá para desligar em Ajustes > Geral.
+- O atalho de gravação pode ser trocado em Ajustes > Entrada: Ctrl + Win (padrão), Ctrl + Shift, Ctrl + Alt ou só o Ctrl direito. A troca vale na hora, sem reiniciar, e a janela principal e a bandeja mostram o atalho escolhido.
 - O editor de modos permite escolher o modelo do Ollama de cada modo.
 
 ### Alterado

@@ -82,7 +82,7 @@ Os instaladores ainda não são assinados digitalmente, então o Windows pode mo
 ## Como usar
 
 1. Abra o Sussurro. Ele fica na bandeja do sistema.
-2. Segure <kbd>Ctrl</kbd> + <kbd>Win</kbd> enquanto fala. Um botão lateral do mouse também pode ser usado.
+2. Segure <kbd>Ctrl</kbd> + <kbd>Win</kbd> enquanto fala. Dá para trocar o atalho em Ajustes > Entrada ou usar um botão lateral do mouse.
 3. Solte as teclas. O texto é transcrito e colado onde o cursor estiver.
 
 <p align="center">

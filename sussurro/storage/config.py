@@ -46,7 +46,8 @@ class Config:
     # Qualidade do large-v3-turbo e dos prompts Clean = intacta.
     smart_economy: bool = True
 
-    # Hotkey (legivel, pra UI; mudanca real requer restart por ora)
+    # Atalho de teclado: "Ctrl+Win" | "Ctrl+Shift" | "Ctrl+Alt" | "Ctrl direito"
+    # (ver hotkey/presets.py). Troca em runtime, sem reiniciar.
     hotkey_label: str = "Ctrl+Win"
     # Botao do mouse pra push-to-talk (alternativa ao teclado).
     # "none" | "middle" (scroll) | "x1" (lateral voltar) | "x2" (lateral avancar)
@@ -100,12 +101,15 @@ class Config:
     @property
     def trigger_label(self) -> str:
         """Rotulo combinado teclado + mouse pra status/notificacoes."""
-        from sussurro.hotkey.mouse_listener import BUTTON_LABELS
+        from sussurro.hotkey.presets import normalize_hotkey
 
+        hotkey = normalize_hotkey(self.hotkey_label)
         if self.mouse_button and self.mouse_button != "none":
+            from sussurro.hotkey.mouse_listener import BUTTON_LABELS
+
             mouse_lbl = BUTTON_LABELS.get(self.mouse_button, self.mouse_button)
-            return f"{self.hotkey_label} ou {mouse_lbl}"
-        return self.hotkey_label
+            return f"{hotkey} ou {mouse_lbl}"
+        return hotkey
 
     def save(self) -> None:
         data = asdict(self)
