@@ -68,6 +68,9 @@ class Config:
     # comportamento extra (config persiste; comportamento pleno em passos futuros)
     start_minimized: bool = False  # abrir minimizado na bandeja (passo 8)
     play_sound: bool = False       # sons de feedback ao gravar/concluir
+    # avisa quando sai uma versão nova (só consulta a página de releases)
+    check_updates: bool = True
+    update_notified: str = ""      # última versão já avisada, pra não repetir
 
     # UI
     theme: str = "system"  # "system" (segue o Windows) | "dark" | "light"

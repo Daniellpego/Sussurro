@@ -54,6 +54,7 @@ class App(QObject):
     # colagem roda em thread de fundo; sinal traz PasteResult pra UI
     _pasted = Signal(object, bool, str, object)  # asr, used_llm, reason, PasteResult
     _audio_prepared = Signal(bool, str)
+    _update_found = Signal(str, str)  # tag, url da release
 
     def __init__(self, qt_app: QApplication) -> None:
         super().__init__()
@@ -172,6 +173,7 @@ class App(QObject):
         self._worker.device_ready.connect(self._on_device_ready)
         self._pasted.connect(self._on_pasted)
         self._audio_prepared.connect(self._on_audio_prepared)
+        self._update_found.connect(self._on_update_found)
 
         # LLM worker -> app
         self._llm_worker.started_processing.connect(self._on_llm_started)
@@ -232,6 +234,40 @@ class App(QObject):
             if not self._cfg.start_minimized:
                 self._window.show()
                 self._window.raise_()
+        # longe do boot pra não disputar rede/CPU com o carregamento do modelo
+        QTimer.singleShot(20_000, self._check_updates)
+
+    def _check_updates(self) -> None:
+        if not self._cfg.check_updates:
+            return
+        import threading
+
+        from sussurro import __version__, updates
+
+        notified = self._cfg.update_notified
+
+        def _run() -> None:
+            found = updates.check_for_update(__version__, notified)
+            if found is not None:
+                self._update_found.emit(*found)
+
+        threading.Thread(target=_run, daemon=True, name="update-check").start()
+
+    @Slot(str, str)
+    def _on_update_found(self, tag: str, url: str) -> None:
+        log.info("nova versão disponível: %s", tag)
+        self._cfg.update_notified = tag
+        self._cfg.save()
+
+        def _open() -> None:
+            import webbrowser
+            webbrowser.open(url)
+
+        self._tray.notify(
+            f"Sussurro {tag.lstrip('v')} disponível",
+            "Clique para ver as novidades e baixar o instalador.",
+            on_click=_open, msecs=10_000,
+        )
 
     def _ensure_ollama(self) -> None:
         """Sobe o Ollama em background (opt-in via ollama_autostart)."""

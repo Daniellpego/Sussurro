@@ -312,6 +312,10 @@ class SettingsWindow(FramelessWindow):
             "Abrir minimizado na bandeja", self._cfg.start_minimized)
         self._tg_startmin.toggled.connect(lambda v: self._set("start_minimized", v))
         init.add_row(self._tg_startmin)
+        self._tg_updates = kit.ToggleRow(
+            "Avisar quando sair uma versão nova", self._cfg.check_updates)
+        self._tg_updates.toggled.connect(lambda v: self._set("check_updates", v))
+        init.add_row(self._tg_updates)
         col.addWidget(self._section("Inicialização", init))
 
         # Comportamento
@@ -795,6 +799,7 @@ class SettingsWindow(FramelessWindow):
         for tg, attr in (
             (getattr(self, "_tg_autostart", None), "autostart"),
             (getattr(self, "_tg_startmin", None), "start_minimized"),
+            (getattr(self, "_tg_updates", None), "check_updates"),
             (getattr(self, "_tg_paste", None), "paste_after_transcribe"),
             (getattr(self, "_tg_overlay", None), "show_overlay"),
             (getattr(self, "_tg_sound", None), "play_sound"),

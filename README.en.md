@@ -55,7 +55,7 @@ Download an installer from the [latest release](https://github.com/Daniellpego/S
 | `SussurroSetup-CPU.exe` | Any computer, no graphics card needed |
 | `SussurroSetup-CUDA.exe` | Computers with an NVIDIA GPU, for faster transcription |
 
-On first run Sussurro downloads the transcription model and, if you want, installs Ollama and the rewriting model. After that everything works offline.
+On first run Sussurro downloads the transcription model and, if you want, installs Ollama and the rewriting model. After that everything works offline. The only other request is an optional check of the GitHub releases page to tell you about new versions, which you can turn off in Ajustes > Geral.
 
 <p align="center">
   <img src="docs/images/boas-vindas-1.png" alt="Welcome" width="230">
