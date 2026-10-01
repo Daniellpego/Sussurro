@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
 )
 
 from sussurro.audio.capture import list_input_devices
+from sussurro.hotkey.presets import keycap_labels, normalize_hotkey
 from sussurro.llm import modes as M
 from sussurro.llm.modes import ModeStore
 from sussurro.storage.config import Config
@@ -287,12 +288,15 @@ class MainWindow(FramelessWindow):
         keys.setContentsMargins(0, 0, 0, 0)
         keys.setSpacing(7)
         keys.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        keys.addWidget(kit.Keycap("Ctrl"))
-        plus = QLabel("+")
-        plus.setFont(theme.qfont(12))
-        plus.setStyleSheet(f"color: {pal.text_tertiary}; background: transparent;")
-        keys.addWidget(plus)
-        keys.addWidget(kit.Keycap("Win"))
+        self._built_hotkey = normalize_hotkey(self._cfg.hotkey_label)
+        for i, key in enumerate(keycap_labels(self._built_hotkey)):
+            if i:
+                plus = QLabel("+")
+                plus.setFont(theme.qfont(12))
+                plus.setStyleSheet(
+                    f"color: {pal.text_tertiary}; background: transparent;")
+                keys.addWidget(plus)
+            keys.addWidget(kit.Keycap(key))
         hint = QLabel("segure para falar")
         hint.setFont(theme.qfont(12))
         hint.setStyleSheet(f"color: {pal.text_tertiary}; background: transparent;")
@@ -362,7 +366,8 @@ class MainWindow(FramelessWindow):
         self._recent_card.clear()
         entries = self._history.all()[:3]
         if not entries:
-            empty = QLabel("Nada ainda. Ative na bandeja e segure Ctrl+Win.")
+            hotkey = normalize_hotkey(self._cfg.hotkey_label)
+            empty = QLabel(f"Nada ainda. Ative na bandeja e segure {hotkey}.")
             empty.setFont(theme.qfont(12))
             empty.setStyleSheet(
                 f"color: {theme.palette().text_tertiary}; "
@@ -433,6 +438,9 @@ class MainWindow(FramelessWindow):
 
     def sync_from_config(self) -> None:
         """Reflete na janela o que mudou nos Ajustes (sem emitir sinais)."""
+        if normalize_hotkey(self._cfg.hotkey_label) != self._built_hotkey:
+            self.retheme()  # refaz os keycaps do atalho
+            return
         self.refresh_modes()
         self._mic_row.set_value(self._mic_label())
         self._lang_row.set_value(

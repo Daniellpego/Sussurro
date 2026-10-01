@@ -6,6 +6,7 @@ Este arquivo registra as mudanças relevantes de cada versão. O formato segue [
 
 ### Adicionado
 
+- O atalho de gravação pode ser trocado em Ajustes > Entrada: Ctrl + Win (padrão), Ctrl + Shift, Ctrl + Alt ou só o Ctrl direito. A troca vale na hora, sem reiniciar, e a janela principal e a bandeja mostram o atalho escolhido.
 - O editor de modos permite escolher o modelo do Ollama de cada modo.
 
 ### Alterado
