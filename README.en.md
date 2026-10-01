@@ -5,7 +5,8 @@
 # Sussurro
 
 **Private, offline voice dictation for Windows.**<br>
-Hold a hotkey, speak, release: the text appears in the app you are using.
+Hold a hotkey, speak, release: the text appears in the app you are using.<br>
+A free, offline, open-source alternative to Wispr Flow.
 
 [![CI](https://github.com/Daniellpego/Sussurro/actions/workflows/ci.yml/badge.svg)](https://github.com/Daniellpego/Sussurro/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/Daniellpego/Sussurro?label=release)](https://github.com/Daniellpego/Sussurro/releases/latest)
@@ -26,7 +27,7 @@ Hold a hotkey, speak, release: the text appears in the app you are using.
 
 </div>
 
-> The interface and the voice commands are in Brazilian Portuguese. Whisper itself supports many languages: set `language` in `%APPDATA%\Sussurro\config.toml` to a code such as `en`, or to `auto`.
+> The interface and the voice commands are in Brazilian Portuguese. Whisper itself supports many languages: pick English or automatic detection under **Idioma** in the main window, or set `language` in `%APPDATA%\Sussurro\config.toml` to any Whisper language code.
 
 ## Why Sussurro
 
