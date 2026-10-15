@@ -8,3 +8,5 @@
 | [INSTALLER_ARCHITECTURE.md](INSTALLER_ARCHITECTURE.md) | Planejamento original do instalador. O processo atual de build está em [`../installer/README.md`](../installer/README.md). |
 | [design/](design/README.md) | Sistema visual e protótipos de referência das telas. |
 | [images/](images) | Capturas das janelas usadas no README, geradas por `scripts/screenshot_pages.py`. |
+| [readme/REFERENCIAS.md](readme/REFERENCIAS.md) | Pesquisa, limites das promessas e origem da capa e dos visuais do README. |
+| [assets/](assets) | Capa original e esquemas bilíngues da apresentação pública. |
